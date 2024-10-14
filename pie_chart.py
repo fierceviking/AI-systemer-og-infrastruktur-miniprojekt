@@ -60,7 +60,9 @@ def pie_chart(df):
         x=df_pd['quantity'],
         labels=df_pd['pizza_size'], 
         autopct='%1.1f%%', 
-        explode=explode)
+        explode=explode,
+        labeldistance=.5,
+        pctdistance=1.1)
     plt.title('Pie chart of quantity pr. pizza size')
     plt.axis('equal')
     plt.legend()
@@ -84,7 +86,7 @@ def pie_chart_pizzas(df, pizza_size):
     plt.pie(
         x=df_pd['count'],
         labels=df_pd['pizza_name'], 
-        autopct='%1.1f%%'
+        autopct='%1.1f%%',
         )
     plt.title(f'Pie chart of pizza names for pizza size {pizza_size}')
     plt.axis('equal')
@@ -108,7 +110,7 @@ def main():
     # Pie chart
     pie_chart(df)
     
-    # pie_chart_pizzas(df, 'L')
+    pie_chart_pizzas(df, 'L')
 
 if __name__ == '__main__':
     main()
