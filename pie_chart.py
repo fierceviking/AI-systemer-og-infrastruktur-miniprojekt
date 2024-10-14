@@ -45,41 +45,53 @@ def missing_values(df):
     return df_filtered
 
 def pie_chart(df):
-    # df.select("pizza_size").distinct().show() # Output: S, M, L, XL, XXL
-
-    # Get a list of the unique values in pizza_size column
-    unique_sizes = [row['pizza_size'] for row in df.select("pizza_size").distinct().collect()]
-    
-    # Create dictionary with sizes as key and sum of quntity as value
-    pizza_dictionary = {'pizza_sizes': [],
-                        'quantity': []}
-    for size in unique_sizes:
-        quantity_sum = df.filter(col('pizza_size')==size).agg(sum("quantity")).collect()[0][0]
-        pizza_dictionary['pizza_sizes'].append(str(size))
-        pizza_dictionary['quantity'].append(int(quantity_sum))
-    # print(pizza_dictionary)
-
-    # Make a new PySpark dataframe based on the dictionary
-    data_tuples = list(zip(pizza_dictionary['pizza_sizes'], pizza_dictionary['quantity']))
-    df_pizza = spark.createDataFrame(data_tuples, schema=["pizza_sizes", "quantity"])
+    # Use Pyspark SQL to show the pizza_sizes and their respective quantity
+    df_pizza = df.groupBy("pizza_size").agg(sum("quantity").alias("quantity"))
     # df_pizza.show()
 
-    # Convert PySpark df to pandas df
+    # Convert to pandas DF
     df_pd = df_pizza.toPandas()
-    print(df_pd)
+    # print(df_pd.head(3))
 
     # Visualize using matplotlib
     explode = (0.1, 0, 0, 0, 0.2)
     plt.figure(figsize=(8,8))
     plt.pie(
         x=df_pd['quantity'],
-        labels=df_pd['pizza_sizes'], 
+        labels=df_pd['pizza_size'], 
         autopct='%1.1f%%', 
         explode=explode)
     plt.title('Pie chart of quantity pr. pizza size')
     plt.axis('equal')
     plt.legend()
     plt.show()
+
+def pie_chart_pizzas(df, pizza_size):
+    # Filter the data by the pizza size
+    df_pizza = df.filter(col('pizza_size')==pizza_size) 
+    # df_pizza.show()
+
+    # Groupby the pizza_name column and count the occurences
+    df_grouped = df_pizza.groupBy("pizza_name").count()
+    # df_grouped.show()
+
+    # Convert to pandas DF
+    df_pd = df_grouped.toPandas()
+    # print(df_pd.head(3))
+
+    # Plot the pie chart
+    plt.figure(figsize=(8,8))
+    plt.pie(
+        x=df_pd['count'],
+        labels=df_pd['pizza_name'], 
+        autopct='%1.1f%%'
+        )
+    plt.title(f'Pie chart of pizza names for pizza size {pizza_size}')
+    plt.axis('equal')
+    plt.legend()
+    plt.show()
+
+
 
 def main():
     # Load the data
@@ -96,6 +108,7 @@ def main():
     # Pie chart
     pie_chart(df)
     
+    # pie_chart_pizzas(df, 'L')
 
 if __name__ == '__main__':
     main()
