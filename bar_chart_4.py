@@ -10,7 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def bar_chart(df, feature):
+def bar_chart(df, filter_size, feature='pizza_ingredients'):
     # Split the specified column
     df_split = df.withColumn(feature, split(col(feature), ', '))
     # df_split.select('pizza_ingredients').show()
@@ -24,23 +24,30 @@ def bar_chart(df, feature):
 
     # Convert to pandas DF
     df_pd = df_feature.toPandas()
-    print(df_pd.head(3))
-    print(df_pd.shape)
+
+    # Filter the dataframe
+    df_filtered = df_pd[df_pd['quantity']>filter_size]
 
     # Plot
+    plt.figure(figsize=(12,8)).set_figheight(6)
 
-
-    plt.figure(figsize=(8,8))
-    plt.bar(x=df_pd.loc[:,feature], height=df_pd.loc[:,'quantity'])
+    plt.bar(
+        x=df_filtered.loc[:,feature], 
+        height=df_filtered.loc[:,'quantity'],
+        label=df_filtered[feature],
+        width=.6
+        )
     plt.title(f"Bar chart of {feature}")
-    plt.legend()
-    # plt.show()
+    plt.xticks(rotation=90, ha='right',fontsize=10)
+    plt.ylabel("Quantity")
+    # plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 def main():
     df = load_data('pizza_sales.csv')
-    # print(df.columns)
-
-    bar_chart(df, 'pizza_ingredients')
+ 
+    bar_chart(df, filter_size=0)
 
 if __name__ == '__main__':
     main()
