@@ -18,6 +18,7 @@ def bar_chart(df, feature):
     # Make each ingredient have its own row
     df_exploded = df_split.withColumn(feature, explode(col(feature)))
 
+    # GroupBy the ingredients and quantity
     df_feature = df_exploded.groupBy(feature).agg(sum('quantity').alias('quantity'))
     # df_feature.show(5)
 
@@ -27,7 +28,7 @@ def bar_chart(df, feature):
     print(df_pd.shape)
 
     # Plot
-    
+
 
     plt.figure(figsize=(8,8))
     plt.bar(x=df_pd.loc[:,feature], height=df_pd.loc[:,'quantity'])
