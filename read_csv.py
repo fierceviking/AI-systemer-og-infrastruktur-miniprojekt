@@ -47,30 +47,46 @@ exc1_df = exc1_df.withColumn(
 
 # Code from Haomin end <--
 
-exc1_df = exc1_df.drop('order_datetime', 'order_date')
+exc1_df = exc1_df.drop('order_datetime', 'order_date') # Here we drop the unwanted columns that were used for order_datetime
 
-exc1_df.show()
+# debug stuff
+# ---
+# exc1_df.show()
+# print(exc1_df.schema)
+# ---
 
-print(exc1_df.schema)
-
+# Here we collect the data and columns to convert the pyspark dataframe to a pandas dataframe
 exc1_data = exc1_df.collect()
 exc1_cols = exc1_df.columns
 
-exc1_df = pd.DataFrame(exc1_data, columns=exc1_cols)
+exc1_df = pd.DataFrame(exc1_data, columns=exc1_cols) # The pandas dataframe is created
 
-print(exc1_df['day_of_week'].unique())
+# more debugging
+# ---
+# print(exc1_df['day_of_week'].unique())
+# ---
 
+# Here the in-built function in pandas is used to convert the order time to the datetime format. 
+# It adds a date, but it doesn't matter since the hour is the only relevant data
 exc1_df['order_time'] = pd.to_datetime(exc1_df['order_time'], format='%H:%M:%S')
 
+# Since the code from Haomin gives weekdays 1-7, we subtract 1 to make it zero-indexed (see line 89)
 exc1_df['day_of_week'] = exc1_df['day_of_week'] - 1
+
+# Here the hour is extracted from the order_time column
 exc1_df['hour'] = exc1_df['order_time'].dt.hour
 
+# Here the quanity is aggregated around day_of_week and hour. 
+# This is then summed to get the amount of pizza sales per hour for each weekday
 aggregated_df = exc1_df.groupby(['day_of_week', 'hour'], as_index=False)['quantity'].sum()
 
+# The figure size is defined here
 plt.figure(figsize=(12, 6))
 
+# The plot is created with seaborn
 sns.lineplot(data=aggregated_df, x='hour', y='quantity', hue='day_of_week', marker='o', palette='tab10')
 
+# Boiler plate figure code
 plt.title('Pizza Orders per Hour Colored by Day of the Week')
 plt.xlabel('Hour of Day')
 plt.ylabel('Quantity of Pizzas')
