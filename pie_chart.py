@@ -110,7 +110,7 @@ def main():
     # Pie chart
     pie_chart(df)
     
-    pie_chart_pizzas(df, 'L')
+    # pie_chart_pizzas(df, 'L')
 
 if __name__ == '__main__':
     main()

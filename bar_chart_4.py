@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 def bar_chart(df, filter_size, feature='pizza_ingredients'):
     # Split the specified column
     df_split = df.withColumn(feature, split(col(feature), ', '))
-    # df_split.select('pizza_ingredients').show()
+    df_split.select('pizza_ingredients').show()
 
     # Make each ingredient have its own row
-    df_exploded = df_split.withColumn(feature, explode(col(feature)))
+    df_exploded = df_split.withColumn(feature, explode(col(feature)))   
 
     # GroupBy the ingredients and quantity
     df_feature = df_exploded.groupBy(feature).agg(sum('quantity').alias('quantity'))
@@ -37,7 +37,7 @@ def bar_chart(df, filter_size, feature='pizza_ingredients'):
         label=df_filtered[feature],
         width=.6
         )
-    plt.title(f"Bar chart of {feature}")
+    plt.title(f"Bar chart of {feature} (>5000 quantities)")
     plt.xticks(rotation=90, ha='right',fontsize=10)
     plt.ylabel("Quantity")
     # plt.legend()
