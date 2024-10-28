@@ -78,7 +78,7 @@ exc1_df['hour'] = exc1_df['order_time'].dt.hour
 
 # Here the quanity is aggregated around day_of_week and hour. 
 # This is then summed to get the amount of pizza sales per hour for each weekday
-aggregated_df = exc1_df.groupby(['day_of_week', 'hour'], as_index=False)['quantity'].sum()
+aggregated_df = exc1_df.groupby(['day_of_week', 'hour'], as_index=False)['quantity'].mean()
 
 weekdays = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
 
@@ -95,7 +95,7 @@ plt.title('Pizza Orders per Hour Colored by Day of the Week', fontsize=20)
 plt.xlabel('Hour of Day', fontsize=20)
 plt.ylabel('Quantity of Pizzas', fontsize=20)
 plt.xticks(range(9, 25), fontsize=20)
-plt.yticks([0, 100, 200, 300, 400, 500], fontsize=20)
+# plt.yticks([0, 100, 200, 300, 400, 500], fontsize=20)
 
 # Allow Seaborn to automatically assign colors in the legend
 plt.legend(title='Day of Week', fontsize=14)
