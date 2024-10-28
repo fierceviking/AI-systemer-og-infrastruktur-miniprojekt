@@ -86,20 +86,22 @@ def pie_chart_pizzas(df, pizza_size):
     df_pizza = df.filter(col('pizza_size')==pizza_size) 
     # df_pizza.show()
 
-    # Groupby the pizza_name column and count the occurences
-    df_grouped = df_pizza.groupBy("pizza_name").count()
+    # Groupby the pizza_category column and count the occurences
+    df_grouped = df_pizza.groupBy("pizza_category").count()
     # df_grouped.show()
 
     # Convert to pandas DF
     df_pd = df_grouped.toPandas()
     # print(df_pd.head(3))
 
+    color_palette = sns.color_palette("YlGnBu")
     # Plot the pie chart
     plt.figure(figsize=(8,8))
     plt.pie(
         x=df_pd['count'],
-        labels=df_pd['pizza_name'], 
+        labels=df_pd['pizza_category'], 
         autopct='%1.1f%%',
+        colors=color_palette
         )
     plt.title(f'Pie chart of pizza names for pizza size {pizza_size}')
     plt.axis('equal')
@@ -121,9 +123,9 @@ def main():
     # df_filtered.show()
 
     # Pie chart
-    pie_chart(df)
+    # pie_chart(df)
     
-    # pie_chart_pizzas(df, 'L')
+    pie_chart_pizzas(df, 'XXL')
 
 if __name__ == '__main__':
     main()
