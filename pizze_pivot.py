@@ -42,6 +42,10 @@ def pivot_table(df):
             sum("quantity").alias("Quantity of Pizzas"), 
             (sum("quantity") / total_sale * 100).alias("Sales in Percentage"))\
         .orderBy(col("Total Income").desc(), col("Quantity of Pizzas").desc())
+    
+    # Rename the groupBy columns
+    df_pivot_spark = df_pivot_spark.withColumnRenamed("pizza_category", "Pizza Category") \
+                                   .withColumnRenamed("pizza_size", "Pizza Size")
    
    # df_order_count.show()
     return df_pivot_spark
