@@ -80,18 +80,25 @@ exc1_df['hour'] = exc1_df['order_time'].dt.hour
 # This is then summed to get the amount of pizza sales per hour for each weekday
 aggregated_df = exc1_df.groupby(['day_of_week', 'hour'], as_index=False)['quantity'].sum()
 
+weekdays = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
+
+aggregated_df['day_of_week'] = aggregated_df['day_of_week'].map(weekdays)
+
 # The figure size is defined here
 plt.figure(figsize=(12, 6))
 
-# The plot is created with seaborn
+# Seaborn plot
 sns.lineplot(data=aggregated_df, x='hour', y='quantity', hue='day_of_week', marker='o', palette='tab10')
 
 # Boiler plate figure code
-plt.title('Pizza Orders per Hour Colored by Day of the Week')
-plt.xlabel('Hour of Day')
-plt.ylabel('Quantity of Pizzas')
-plt.xticks(range(9, 25))
-plt.legend(title='Day of Week', labels=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+plt.title('Pizza Orders per Hour Colored by Day of the Week', fontsize=20)
+plt.xlabel('Hour of Day', fontsize=20)
+plt.ylabel('Quantity of Pizzas', fontsize=20)
+plt.xticks(range(9, 25), fontsize=20)
+plt.yticks([0, 100, 200, 300, 400, 500], fontsize=20)
+
+# Allow Seaborn to automatically assign colors in the legend
+plt.legend(title='Day of Week', fontsize=14)
 plt.grid(True)
 
 plt.show()
