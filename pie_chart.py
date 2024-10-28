@@ -4,9 +4,10 @@ import os
 import pyspark
 import findspark
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, sum, when, count, isnan
+from pyspark.sql.functions import col, sum, when, count, isnan, lit
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 # Filter warnings
@@ -47,14 +48,25 @@ def missing_values(df):
 def pie_chart(df):
     # Use Pyspark SQL to show the pizza_sizes and their respective quantity
     df_pizza = df.groupBy("pizza_size").agg(sum("quantity").alias("quantity"))
-    # df_pizza.show()
+
+    df_combined = df_pizza.filter(df_pizza['pizza_size'].isin('XL', 'XXL')) \
+                    .agg(lit('XL + XXL').alias('pizza_size'), sum('quantity').alias('quantity'))
+    
+    # df_combined.show()
+
+    # Combine the two dataframes
+    df_result = df_pizza.union(df_combined)
+    df_result = df_result.filter(df_result['pizza_size'].isin('S','M','L','XL + XXL'))
+
+    df_result.show()
 
     # Convert to pandas DF
-    df_pd = df_pizza.toPandas()
+    df_pd = df_result.toPandas()
     # print(df_pd.head(3))
 
     # Visualize using matplotlib
-    explode = (0.1, 0, 0, 0, 0.2)
+    explode = (0.1, 0, 0, 0)
+    color_palette = sns.color_palette("YlGnBu")
     plt.figure(figsize=(8,8))
     plt.pie(
         x=df_pd['quantity'],
@@ -62,6 +74,8 @@ def pie_chart(df):
         autopct='%1.1f%%', 
         explode=explode,
         labeldistance=.5,
+        colors=color_palette,
+        shadow=True,
         pctdistance=1.1)
     plt.title('Pie chart of quantity pr. pizza size')
     plt.axis('equal')
@@ -101,11 +115,11 @@ def main():
     # df.show(5, truncate=True) # Show the first 5 rows
     
     # Data insights
-    # data_description(df)
+    data_description(df)
 
     # # Missing values
-    df_filtered = missing_values(df)
-    df_filtered.show()
+    # df_filtered = missing_values(df)
+    # df_filtered.show()
 
     # Pie chart
     pie_chart(df)
