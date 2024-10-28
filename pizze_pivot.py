@@ -38,9 +38,9 @@ def pivot_table(df):
     # Creates the pyspark pivot table
     df_pivot_spark = df.groupBy("pizza_category", "pizza_size") \
         .agg(sum("total_price").alias("Total Income"), 
-            (sum("total_price") / total_revenue * 100).alias("Revenue in Percentage"), 
+            (sum("total_price") / total_revenue * 100).alias("Income in Percentage"), 
             sum("quantity").alias("Quantity of Pizzas"), 
-            (sum("quantity") / total_sale * 100).alias("Sales in Percentage"))\
+            (sum("quantity") / total_sale * 100).alias("Quantities in Percentage"))\
         .orderBy(col("Total Income").desc(), col("Quantity of Pizzas").desc())
     
     # Rename the groupBy columns
