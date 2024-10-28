@@ -73,11 +73,10 @@ def pie_chart(df):
         labels=df_pd['pizza_size'], 
         autopct='%1.1f%%', 
         explode=explode,
-        labeldistance=.5,
         colors=color_palette,
         shadow=True,
-        pctdistance=1.1)
-    plt.title('Pie chart of quantity pr. pizza size')
+        textprops={'fontsize': 20})
+    plt.title('Distribution of Sales pr. Pizza Sizes')
     plt.axis('equal')
     plt.legend()
     plt.show()
