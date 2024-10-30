@@ -9,14 +9,16 @@ import pandas as pd
 import warnings
 import logging
 
-# Filter warnings and initialize spark in environment
-warnings.filterwarnings("ignore")
-logging.getLogger("py4j").setLevel(logging.ERROR)
-findspark.init()
-spark = SparkSession.builder.appName("pizza_sales").getOrCreate()
-spark.sparkContext.setLogLevel("ERROR")
+def fliter_warning():
+    # Filter warnings and initialize spark in environment
+    warnings.filterwarnings("ignore")
+    logging.getLogger("py4j").setLevel(logging.ERROR)
+    findspark.init()
+    spark = SparkSession.builder.appName("pizza_sales").getOrCreate()
+    spark.sparkContext.setLogLevel("ERROR")
+    return spark
 
-def load_data(file_name):
+def load_data(file_name, spark):
     # Defines the path to the csv file
     data = os.path.join(os.path.dirname(__file__), file_name)
 
@@ -69,7 +71,8 @@ def better_looking_pivot_table(df_pivot_spark):
     
 def main():
     file_name = 'pizza_sales.csv'
-    df_spark = load_data(file_name)
+    spark = fliter_warning()
+    df_spark = load_data(file_name, spark)
 
     df_pivot_spark = pivot_table(df_spark)
 
