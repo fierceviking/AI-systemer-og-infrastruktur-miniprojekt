@@ -67,13 +67,23 @@ def most_common_size_per_month(df_spark):
     most_common_sizes_pd = df_spark.toPandas()
 
     # Plot
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=most_common_sizes_pd, x='month', y='quantity',hue='pizza_size', palette='viridis')
-    plt.title('Most Common Pizza Size per Month')
-    plt.xlabel('Month')
-    plt.ylabel('Number of Orders')
-    plt.legend(title='Pizza Size')
-    plt.xticks(range(0, 12), ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], rotation=90)
+    plt.figure(figsize=(10, 5))
+    sns.barplot(data=most_common_sizes_pd, 
+                x='month', 
+                y='quantity',
+                hue='pizza_size', 
+                palette='viridis',
+                width=1.2
+                )
+    plt.title('Most Common Pizza Size per Month', fontsize=14)
+    plt.xlabel('')
+    plt.ylabel('Number of Orders', fontsize=14)
+    plt.legend(title='Pizza Size', fontsize=14)
+    plt.xticks(range(0, 12), 
+               ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], 
+               rotation=45,
+               fontsize=14,
+               ha='right')
     plt.grid(True)
 
     plt.show()
