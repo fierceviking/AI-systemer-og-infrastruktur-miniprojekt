@@ -1,92 +1,116 @@
-from pizza_pivot import load_data
-import warnings
-import logging
-import os
-import pyspark
-import findspark
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, sum, when, count, isnan, lit
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.preprocessing import MinMaxScaler
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
+from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
+
+# Sample data for Electricity Consumption 
+data = {
+    'timestamp': pd.date_range(start='2023-01-01', periods=100, freq='H'),
+    'consumption': np.random.randint(100, 1000, 100)
+}
+df = pd.DataFrame(data)
+df.set_index('timestamp', inplace=True)
+
+# Preprocessing
+scaler = MinMaxScaler()
+df_scaled = scaler.fit_transform(df)
+
+# Create sequences and labels for training
+seq_length = 24
+X, y = [], []
+for i in range(len(df_scaled) - seq_length):
+    X.append(df_scaled[i:i + seq_length])
+    y.append(df_scaled[i + seq_length])
 
 
-# Filter warnings
-warnings.filterwarnings("ignore")
-logging.getLogger("py4j").setLevel(logging.ERROR)
-findspark.init()
-spark = SparkSession.builder.appName("pizza_sales").getOrCreate()
+X, y = np.array(X), np.array(y)
 
-def pie_chart(df):
-    # Use Pyspark SQL to show the pizza_sizes and their respective quantity
-    df_pizza = df.groupBy("pizza_size").agg(sum("quantity").alias("quantity"))
+# Split the data into training and test sets
+train_size = int(0.8 * len(X))
+X_train, X_test = X[:train_size], X[train_size:]
+y_train, y_test = y[:train_size], y[train_size:]
 
-  #  df_combined = df_pizza.filter(df_pizza['pizza_size'].isin('XL', 'XXL')) \
-   #                 .agg(lit('XL + XXL').alias('pizza_size'), sum('quantity').alias('quantity'))
-    
-    # df_combined.show()
+# Create a custom dataset class for PyTorch DataLoader
+class TimeSeriesDataset(Dataset):
+    def __init__(self, X, y):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.float32)
 
-    # Combine the two dataframes
-   # df_result = df_pizza.union(df_pizza)
-  #  df_result = df_result.filter(df_result['pizza_size'].isin('S','M','L','XL + XXL'))
+    def __len__(self):
+        return len(self.X)
 
-   # df_result.show()
+    def __getitem__(self, index):
+        return self.X[index], self.y[index]
 
-    # Convert to pandas DF
-    df_pd = df_pizza.toPandas()
-    # print(df_pd.head(3))
+# Define the RNN model
+class RNNModel(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(RNNModel, self).__init__()
+        self.rnn = nn.LSTM(input_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
 
-    # Visualize using matplotlib
-    explode = (0.1, 0, 0, 0)
-    color_palette = sns.color_palette("YlGnBu")
-    plt.figure(figsize=(8,8))
-    plt.pie(
-        x=df_pd['quantity'],
-        labels=df_pd['pizza_size'], 
-        autopct='%1.1f%%', 
-        explode=explode,
-        colors=color_palette,
-        shadow=True,
-        textprops={'fontsize': 20})
-    plt.title('Distribution of Sales pr. Pizza Sizes')
-    plt.axis('equal')
-    plt.legend()
-    plt.show()
+    def forward(self, x):
+        out, _ = self.rnn(x)
+        out = self.fc(out[:, -1, :])
+        return out
 
-def pie_chart_pizzas(df):
+# Hyperparameters
+input_size = X_train.shape[2]
+hidden_size = 128
+output_size = 1
+learning_rate = 0.01
+num_epochs = 50
+batch_size = 64
 
-    # Groupby the pizza_category column and count the occurences
-    df_grouped = df.groupBy("pizza_category").count()
-    # df_grouped.show()
+# Create data loaders
+train_dataset = TimeSeriesDataset(X_train, y_train)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Convert to pandas DF
-    df_pd = df_grouped.toPandas()
-    # print(df_pd.head(3))
+# Initialize the model, loss function, and optimizer
+model = RNNModel(input_size, hidden_size, output_size)
+criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    color_palette = sns.color_palette("YlGnBu")
-    # Plot the pie chart
-    plt.figure(figsize=(8,8))
-    plt.pie(
-        x=df_pd['count'],
-        labels=df_pd['pizza_category'], 
-        autopct='%1.1f%%',
-        colors=color_palette
-        )
-    plt.title(f'Pie chart of pizza names for pizza size ')
-    plt.axis('equal')
-    plt.legend()
-    plt.show()
+# Training the model
+for epoch in range(num_epochs):
+    for inputs, targets in train_loader:
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+    if (epoch + 1) % 10 == 0:
+        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+# Evaluation on the test set
+model.eval()
+with torch.no_grad():
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_pred = model(X_test_tensor).numpy()
+    y_pred = scaler.inverse_transform(y_pred)
+    y_test = scaler.inverse_transform(y_test)
+
+# Calculate RMSE
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+print(f"Root Mean Squared Error (RMSE): {rmse}")
+mae = mean_absolute_error(y_test, y_pred)
+print(f"Mean Absolute Error (MAE): {mae:.2f}")
+mape = mean_absolute_percentage_error(y_test, y_pred) * 100
+print(f"Mean Absolute Percentage Error (MAPE): {mape:.2f}%")
 
 
-
-def main():
-    # Load the data
-    df = load_data('pizza_sales.csv')
-
-    # Pie chart
-    pie_chart(df)
-    
-   # pie_chart_pizzas(df)
-
-if __name__ == '__main__':
-    main()
+# Visualize predictions against actual data
+plt.figure(figsize=(10, 6))
+plt.plot(df.index[train_size+seq_length:], y_test, label='Actual')
+plt.plot(df.index[train_size+seq_length:], y_pred, label='Predicted')
+plt.xlabel('Timestamp')
+plt.ylabel('Electricity Consumption')
+plt.title('Electricity Consumption Prediction using RNN (PyTorch)')
+plt.legend()
+plt.show()
