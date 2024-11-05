@@ -97,7 +97,7 @@ def hourly_sales(pyspark_dataframe):
     plt.grid(True)
 
     plt.show()
-    return 1
+    return aggregated_df
 
 def daily_sales(spark_dataframe):
     # Plotting sales per day
@@ -118,7 +118,7 @@ def daily_sales(spark_dataframe):
     plt.legend(title='Pizza sales per day')
     plt.grid(True)
     plt.show()
-    return 1
+    return exc2_pd
 
 def monthly_sales(spark_dataframe):
     """
@@ -146,7 +146,7 @@ def monthly_sales(spark_dataframe):
     plt.legend(title='Pizza sales per month', fontsize=16)
     plt.grid(True)
     plt.show()
-    return 1
+    return exc3_pd
 
 def main():    
     findspark.init()
@@ -159,7 +159,9 @@ def main():
 
     # hourly_sales(df_spark)
 
-    daily_sales(df_spark)
+    dataframe = daily_sales(df_spark)
+
+    dataframe.to_csv("daily_sales.csv")
 
     # monthly_sales(df_spark)
 
