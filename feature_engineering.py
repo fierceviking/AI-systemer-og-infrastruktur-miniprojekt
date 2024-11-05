@@ -5,18 +5,14 @@ import findspark
 from pyspark.sql import SparkSession, Window
 import logging
 from pyspark.sql.functions import col, substring, concat, lit, to_timestamp, \
-    month, sum, hour, dayofmonth, when, date_trunc, \
-    lag, date_format, lpad
-import pandas as pd
+    month, sum, hour, dayofmonth, when, to_date, date_trunc, \
+    lag, regexp_replace
 
 # Filter warnings
 warnings.filterwarnings("ignore")
 logging.getLogger("py4j").setLevel(logging.ERROR)
 findspark.init()
-
 spark = SparkSession.builder.appName("pizza_sales").getOrCreate()
-# Set log level to ERROR to suppress warnings
-spark.sparkContext.setLogLevel("ERROR")
 
 def load_data(file_name):
     # Define data path
@@ -25,7 +21,6 @@ def load_data(file_name):
     # Read data
     df_spark = spark.read.csv(data, header=True, inferSchema=True)
     return df_spark
-
 
 def convert_to_datetime(df_spark):
     """
@@ -42,19 +37,12 @@ def convert_to_datetime(df_spark):
     # Ensure 'order_date' and 'order_time' are strings
     exc1_df = exc1_df.withColumn("order_date", col("order_date").cast("string"))
     exc1_df = exc1_df.withColumn("order_time", col("order_time").cast("string"))
-    
+
+    # Normalize date format by replacing '-' with '/'
+    exc1_df = exc1_df.withColumn("order_date", regexp_replace(col("order_date"), "-", "/"))
+
     # Extract time substring and create 'order_datetime'
     exc1_df = exc1_df.withColumn("order_time", substring(col("order_time"), 12, 8))
-    
-    # Format order_date to ensure leading zeros
-    exc1_df = exc1_df.withColumn("order_date", 
-        concat(
-            lpad(substring(col("order_date"), 1, 1), 2, '0'), lit('/'),
-            lpad(substring(col("order_date"), 3, 1), 2, '0'), lit('/'),
-            substring(col("order_date"), 5, 4)  # Year
-        )
-    )
-
     exc1_df = exc1_df.withColumn(
         'order_datetime',
         concat(col('order_date'), lit(' '), col('order_time'))
@@ -63,16 +51,13 @@ def convert_to_datetime(df_spark):
     # Convert to timestamp and extract month and hour
     exc1_df = exc1_df.withColumn(
         'order_timestamp',
-        to_timestamp(col('order_datetime'), 'dd/MM/yyyy HH:mm:ss')
+        to_timestamp(col('order_datetime'), 'd/M/yyyy HH:mm:ss')
     )
-    
+    exc1_df = exc1_df.withColumn('day', dayofmonth(col('order_timestamp')))
     exc1_df = exc1_df.withColumn('month', month(col('order_timestamp')))
     exc1_df = exc1_df.withColumn('hour', hour(col('order_timestamp')))
-    exc1_df = exc1_df.withColumn('day', dayofmonth(col('order_timestamp')))
-
 
     return exc1_df
-
 
 def create_dataframe(df_spark):
     # Round the hour in timestamp-feature
@@ -80,7 +65,7 @@ def create_dataframe(df_spark):
 
     # Calculate quantity of each pizza size per hour
     df_spark = df_spark.groupBy(
-        'order_timestamp_hour', 'hour','day','month'
+        'order_timestamp_hour', 'day','month', 'hour'
         ).agg(
         sum(when(col("pizza_size") == "S", col("quantity")).otherwise(0)).alias("S_count"),
         sum(when(col("pizza_size") == "M", col("quantity")).otherwise(0)).alias("M_count"),
@@ -93,7 +78,7 @@ def create_dataframe(df_spark):
         sum(when(col("pizza_category") == 'Veggie', col("quantity")).otherwise(0)).alias('Veggie'),
         sum(col("quantity")).alias("total_quantity"),  # Total quantity of pizzas sold per hour
         sum('total_price').alias('total_sales') # Total sales pr hour
-    ).orderBy('order_timestamp_hour','hour','day','month')
+    ).orderBy('order_timestamp_hour', 'day','month', 'hour')
 
     # Sort dataframe
     df_spark = df_spark.sort('order_timestamp_hour', 'hour')
@@ -120,18 +105,14 @@ def main():
     # df_hour.show(5)
 
     df_featured = create_dataframe(df_hour)
-    df_pandas = df_featured.toPandas()
-    print(df_pandas)
+    # df_featured.show(20)
 
-    # df_featured.show(20)
-    # df_featured = lag_variable(df_featured, 'total_sales', offset=1)
-    # df_featured = lag_variable(df_featured, 'total_sales', offset=3)
-    # df_featured = lag_variable(df_featured, 'total_sales', offset=5)
-    # df_featured.show(20)
-    # df_featured.printSchema()
-    # print(df_featured.columns)
-    
-     # Convert to Pandas DataFrame
+    df_featured = lag_variable(df_featured, 'total_sales', offset=1)
+    df_featured = lag_variable(df_featured, 'total_sales', offset=3)
+    df_featured = lag_variable(df_featured, 'total_sales', offset=5)
+    df_featured.show(20)
+
+    df_featured.toPandas().to_csv('new_pizza_sales.csv')
 
 if __name__ == '__main__':
     main()
