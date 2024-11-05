@@ -34,7 +34,7 @@ class TimeSeriesDataset(Dataset):
 
 # Improved Model Definition
 class RNNModel(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=2):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=4):
         super(RNNModel, self).__init__()
         self.rnn = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, output_size)
@@ -68,9 +68,6 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs):
 if __name__ == "__main__":
     # Load the CSV file
     df = pd.read_csv('new_pizza_sales.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
-
-
-
 
     # Use the 'total_sales' column for prediction
     seq_length = 24
