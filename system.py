@@ -7,6 +7,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib
 
 def plot_model_performance(y_test, y_pred):
     # Residual plot
@@ -169,10 +170,12 @@ def main():
     print("Final Model Mean Squared Error:", mse)
     print("Final Model R^2 Score:", r2)
 
+    joblib.dump(best_model, "SVC.pkl")
+
     # Plotting results
-    plot_model_performance(y_test, y_pred)
-    plot_y_test_vs_y_pred(y_test, y_pred)
-    plot_last_25_samples(y_test, y_pred)
+    # plot_model_performance(y_test, y_pred)
+    # plot_y_test_vs_y_pred(y_test, y_pred)
+    # plot_last_25_samples(y_test, y_pred)
 
 if __name__ == "__main__":
     main()
