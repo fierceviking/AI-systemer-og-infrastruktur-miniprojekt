@@ -130,7 +130,7 @@ def main():
     }
     """
     param_grid = {
-        'model__kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
+        'model__kernel': ['rbf', 'poly', 'sigmoid'],
         'model__C': [1, 5, 10],
         'model__degree': [3, 8],
         'model__coef0': [0.01, 10, 0.5],
