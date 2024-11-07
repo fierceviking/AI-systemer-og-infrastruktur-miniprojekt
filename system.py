@@ -7,8 +7,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
-from skl2onnx import convert_sklearn
-from skl2onnx.common.data_types import FloatTensorType
+import joblib
 
 def plot_model_performance(y_test, y_pred):
     # Residual plot
@@ -93,83 +92,28 @@ def plot_last_25_samples(y_test, y_pred):
     plt.show()
 
 def main():
-    # Load data
     df = pd.read_csv('data.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
 
     cols = ["hour", "day", "month"]
     target = 'total_sales'
-    X = df.drop(columns=[target])[cols]
+    X = df[cols]
     y = df[target]
 
-    # Split data into an initial training set (first 80%) and final test set (last 20%)
     split_index = int(len(df) * 0.8)
-    X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
-    y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
+    X_train, y_train = X.iloc[:split_index], y.iloc[:split_index]
 
-    # Initialize TimeSeriesSplit for the hyperparameter tuning phase
-    tss = TimeSeriesSplit(n_splits=5)
-
-    # Initialize scaler and model
     scaler = StandardScaler()
-    model = SVR(kernel='rbf', C=1.0, epsilon=0.1)
+    model = SVR(kernel='sigmoid', gamma='scale', degree=8, coef0=0.01, C=1)
 
-    # Create a pipeline for scaling and modeling
     pipeline = Pipeline([
         ('scaler', scaler),
         ('model', model)
     ])
-    
-    # Define hyperparameter grid
-    param_grid = {
-        'model__kernel': ['rbf', 'poly', 'sigmoid'],
-        'model__C': [1, 5, 10],
-        'model__degree': [3, 8],
-        'model__coef0': [0.01, 10, 0.5],
-        'model__gamma': ['auto', 'scale']
-    }
-    
-    # Initialize RandomizedSearchCV with TimeSeriesSplit on training data only
-    grid_search = RandomizedSearchCV(
-        pipeline, 
-        param_distributions=param_grid, 
-        n_iter=20,
-        scoring='r2', 
-        n_jobs=-1, 
-        cv=tss,
-        verbose=2,
-        random_state=42
-    )
-    
-    # Perform grid search on the training data only
-    grid_search.fit(X_train, y_train)
 
-    # Best model from grid search
-    best_model = grid_search.best_estimator_
-    print("Best hyperparameters:", grid_search.best_params_)
+    pipeline.fit(X_train, y_train)
 
-    # Make predictions on the test set
-    y_pred = best_model.predict(X_test)
+    joblib.dump(pipeline, "SVR_pipeline.joblib")
+    print("Model saved as SVR_pipeline.joblib")
 
-    # Evaluate final model performance
-    mse = mean_squared_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-    
-    print("Final Model Mean Squared Error:", mse)
-    print("Final Model R^2 Score:", r2)
-
-    # Define the initial type for the model input based on your data shape
-    initial_type = [("float_input", FloatTensorType([None, X.shape[1]]))]
-
-    # Convert the entire pipeline (scaler + model) to ONNX
-    onnx_pipeline = convert_sklearn(best_model, initial_types=initial_type)
-
-    # Save the ONNX model
-    with open("SVR_pipeline.onnx", "wb") as f:
-        f.write(onnx_pipeline.SerializeToString())
-
-    # Plotting results
-    plot_y_test_vs_y_pred(y_test, y_pred)
-    # plot_last_25_samples(y_test, y_pred)
-    
 if __name__ == "__main__":
     main()
