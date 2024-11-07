@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
 from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
 
 def plot_model_performance(y_test, y_pred):
     # Residual plot
@@ -95,13 +96,9 @@ def main():
     # Load data
     df = pd.read_csv('data.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
 
-    plot_correlation_matrix(df)
-
     cols = ["hour", "day", "month"]
-    
     target = 'total_sales'
-    X = df.drop(columns=[target])
-    X = X[X.columns.intersection(cols)]
+    X = df.drop(columns=[target])[cols]
     y = df[target]
 
     # Split data into an initial training set (first 80%) and final test set (last 20%)
@@ -114,7 +111,6 @@ def main():
 
     # Initialize scaler and model
     scaler = StandardScaler()
-    # model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42)
     model = SVR(kernel='rbf', C=1.0, epsilon=0.1)
 
     # Create a pipeline for scaling and modeling
@@ -124,15 +120,6 @@ def main():
     ])
     
     # Define hyperparameter grid
-    """
-    param_grid = {
-        'model__n_estimators': [50, 100, 200],
-        'model__max_depth': [3, 5, 7],
-        'model__learning_rate': [0.01, 0.05, 0.1],
-        'model__subsample': [0.8, 0.9, 1.0],
-        'model__colsample_bytree': [0.8, 0.9, 1.0]
-    }
-    """
     param_grid = {
         'model__kernel': ['rbf', 'poly', 'sigmoid'],
         'model__C': [1, 5, 10],
@@ -145,10 +132,10 @@ def main():
     grid_search = RandomizedSearchCV(
         pipeline, 
         param_distributions=param_grid, 
-        n_iter=20,  # Number of random combinations to try
+        n_iter=20,
         scoring='r2', 
         n_jobs=-1, 
-        cv=tss,  # Correctly passing TimeSeriesSplit here
+        cv=tss,
         verbose=2,
         random_state=42
     )
@@ -160,9 +147,6 @@ def main():
     best_model = grid_search.best_estimator_
     print("Best hyperparameters:", grid_search.best_params_)
 
-    # Fit the best model on the full training set
-    best_model.fit(X_train, y_train)
-
     # Make predictions on the test set
     y_pred = best_model.predict(X_test)
 
@@ -173,22 +157,19 @@ def main():
     print("Final Model Mean Squared Error:", mse)
     print("Final Model R^2 Score:", r2)
 
-    # to_onnx(best_model, X[:1], name="SVC.onnx")
-    onnxmodel = convert_sklearn(best_model, "SVC.onnx")
+    # Define the initial type for the model input based on your data shape
+    initial_type = [("float_input", FloatTensorType([None, X.shape[1]]))]
 
-    with open("SVC.onnx", "wb") as f:
-        f.write(onnxmodel.SerializeToString())
+    # Convert the entire pipeline (scaler + model) to ONNX
+    onnx_pipeline = convert_sklearn(best_model, initial_types=initial_type)
 
-    # to_onnx(scaler, X[:1], name="scaler.onnx")
-    onnxscaler = convert_sklearn(scaler, "scaler.onnx")
-
-    with open("scaler.onnx", "wb") as f:
-        f.write(onnxscaler.SerializeToString())
+    # Save the ONNX model
+    with open("SVR_pipeline.onnx", "wb") as f:
+        f.write(onnx_pipeline.SerializeToString())
 
     # Plotting results
-    # plot_model_performance(y_test, y_pred)
     plot_y_test_vs_y_pred(y_test, y_pred)
     # plot_last_25_samples(y_test, y_pred)
-
+    
 if __name__ == "__main__":
     main()
