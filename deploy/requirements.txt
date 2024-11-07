@@ -1,0 +1,9 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+skl2onnx
+onnx
+fastapi  # Required to build the web app
+uvicorn  # Used as an ASGI server to run the FastAPI app
+onnxruntime  # Needed for running ONNX models

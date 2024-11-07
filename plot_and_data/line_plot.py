@@ -1,4 +1,4 @@
-from pizza_pivot import fliter_warning, load_data
+from plot_and_data.pizza_pivot import fliter_warning, load_data
 
 import os
 import datetime
