@@ -172,6 +172,8 @@ def main():
 
     joblib.dump(best_model, "SVC.pkl")
 
+    joblib.dump(scaler, "scaler.pkl")
+
     # Plotting results
     # plot_model_performance(y_test, y_pred)
     # plot_y_test_vs_y_pred(y_test, y_pred)

@@ -4,6 +4,8 @@ from flask import Flask, request, jsonify
 # Load the trained model
 model = joblib.load("SVC.pkl")
 
+scaler = joblib.load("scaler.pkl")
+
 app = Flask(__name__)
 
 # Root URL for a simple welcome message (GET request)
