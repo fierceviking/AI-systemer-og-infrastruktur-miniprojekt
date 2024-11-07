@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
-import joblib
+from skl2onnx import convert_sklearn
 
 def plot_model_performance(y_test, y_pred):
     # Residual plot
@@ -96,9 +96,12 @@ def main():
     df = pd.read_csv('data.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
 
     plot_correlation_matrix(df)
+
+    cols = ["hour", "day", "month"]
     
     target = 'total_sales'
     X = df.drop(columns=[target])
+    X = X[X.columns.intersection(cols)]
     y = df[target]
 
     # Split data into an initial training set (first 80%) and final test set (last 20%)
@@ -170,13 +173,21 @@ def main():
     print("Final Model Mean Squared Error:", mse)
     print("Final Model R^2 Score:", r2)
 
-    joblib.dump(best_model, "SVC.pkl")
+    # to_onnx(best_model, X[:1], name="SVC.onnx")
+    onnxmodel = convert_sklearn(best_model, "SVC.onnx")
 
-    joblib.dump(scaler, "scaler.pkl")
+    with open("SVC.onnx", "wb") as f:
+        f.write(onnxmodel.SerializeToString())
+
+    # to_onnx(scaler, X[:1], name="scaler.onnx")
+    onnxscaler = convert_sklearn(scaler, "scaler.onnx")
+
+    with open("scaler.onnx", "wb") as f:
+        f.write(onnxscaler.SerializeToString())
 
     # Plotting results
     # plot_model_performance(y_test, y_pred)
-    # plot_y_test_vs_y_pred(y_test, y_pred)
+    plot_y_test_vs_y_pred(y_test, y_pred)
     # plot_last_25_samples(y_test, y_pred)
 
 if __name__ == "__main__":

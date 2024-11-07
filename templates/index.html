@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Credit Defaults Prediction</title>
+</head>
+<body>
+    <h1>Welcome to the Credit Defaults Prediction</h1>
+
+    <form action="/predict" method="post">
+        <label for="fname">First Name:</label><br>
+        <input type="text" id="fname" name="fname" value="John"><br>
+        <label for="lname">Last Name:</label><br>
+        <input type="text" id="lname" name="lname" value="Doe"><br><br>
+
+        <!-- This can be adapted for your prediction input features -->
+        <label for="Hour">Hour:</label><br>
+        <input type="text" id="Hour" name="features"><br>
+
+        <label for="Day">Day:</label><br>
+        <input type="text" id="Day" name="features"><br>
+
+        <label for="Month">Month:</label><br>
+        <input type="text" id="Month" name="features"><br>
+
+        <!-- Add more input fields as required by your model -->
+
+        <input type="submit" value="Predict">
+    </form>
+
+    <p>Prediction Result: {{ pred }}</p>
+</body>
+</html>

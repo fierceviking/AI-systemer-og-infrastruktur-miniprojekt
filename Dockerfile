@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Install required Python libraries (Flask for API, joblib for model loading, and scikit-learn for model functionality)
-RUN pip install --no-cache-dir flask joblib scikit-learn
+RUN pip install --no-cache-dir fastapi uvicorn joblib scikit-learn
 
 # Expose the port that the Flask app will run on
 EXPOSE 5000
