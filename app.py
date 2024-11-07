@@ -2,7 +2,7 @@ import joblib
 from flask import Flask, request, jsonify
 
 # Load the trained model
-model = joblib.load("credit_defaults_model.pkl")
+model = joblib.load("SVC.pkl")
 
 app = Flask(__name__)
 
@@ -12,7 +12,7 @@ def home():
     return jsonify({"message": "Welcome to the Credit Defaults Prediction API. Use POST requests to /predict to get predictions."})
 
 # Prediction endpoint (POST request)
-@app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["GET", "POST"])
 def predict():
     # Check if the request content type is JSON
     if request.content_type != 'application/json':
