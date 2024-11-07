@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir fastapi uvicorn joblib scikit-learn
 EXPOSE 5000
 
 # Command to start the Flask app
-CMD ["python", "app.py"]
+CMD ["uvicorn", "weather_api:app", "--host", "0.0.0.0", "--port", "80"]
