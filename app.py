@@ -1,10 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import joblib
 import numpy as np
-import os
-import sklearn
-import xgboost
 import onnxruntime as ort
 import logging
 import uvicorn
@@ -15,14 +11,6 @@ app = FastAPI()
 model_path = "deploy/xgb_model.onnx"  # Update based on your chosen model's file name
 try:
     model = ort.InferenceSession(model_path)
-except Exception as e:
-    logging.error(f"Error loading ONNX model: {e}")
-    raise e
-
-# Loading the scaler
-model_path = "deploy/scaler_model.onnx"  # Update based on your chosen model's file name
-try:
-    scaler = ort.InferenceSession(model_path)
 except Exception as e:
     logging.error(f"Error loading ONNX model: {e}")
     raise e
@@ -40,14 +28,16 @@ def index():
 
 @app.post("/predict")
 def predict_pizza_sales(features: PizzaSalesFeatures):
-    # Prepare the input data
+    # Prepare the input data as a numpy array
     input_data = np.array([[features.hour, features.day, features.month]], dtype=np.float32)
-    print(f"Input data for prediction: {input_data}")
+    print(f"Original input data for prediction: {input_data}")
 
     try:
-        # Perform the prediction
-        predicted_sales = pipeline.predict(input_data)
-        
+        # Perform the prediction using the ONNX model
+        model_input_name = model.get_inputs()[0].name
+        model_output_name = model.get_outputs()[0].name
+        predicted_sales = model.run([model_output_name], {model_input_name: input_data})[0]
+
         # Convert numpy.float32 to standard float for JSON serialization
         predicted_sales_value = float(predicted_sales[0])
 
@@ -63,6 +53,7 @@ def predict_pizza_sales(features: PizzaSalesFeatures):
     except Exception as e:
         print(f"Prediction failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn

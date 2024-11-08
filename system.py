@@ -55,10 +55,6 @@ def main():
         alpha=0.1,
         random_state = 42)
 
-    scaler = StandardScaler()
-
-    save_model(scaler.fit(x_train), x_train, "scaler")
-
     save_model(model.fit(x_train, y_train), x_train, "XGB")
     
 if __name__ == "__main__":

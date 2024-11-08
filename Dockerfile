@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir fastapi uvicorn xgboost joblib numpy scikit-learn
+RUN pip install --no-cache-dir fastapi uvicorn onnxruntime numpy
 
 EXPOSE 5000
 
