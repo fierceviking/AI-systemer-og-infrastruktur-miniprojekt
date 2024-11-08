@@ -3,10 +3,12 @@ from pydantic import BaseModel
 import joblib
 import numpy as np
 import os
+import sklearn
+import xgboost
 
 app = FastAPI()
 
-model_path = "SVR_pipeline.joblib"
+model_path = "XGB_pipeline.joblib"
 if not os.path.exists(model_path):
     raise RuntimeError(f"Model file '{model_path}' not found. Please ensure 'system.py' has generated it correctly.")
 
@@ -25,19 +27,25 @@ def index():
 
 @app.post("/predict")
 def predict_pizza_sales(features: PizzaSalesFeatures):
+    # Prepare the input data
     input_data = np.array([[features.hour, features.day, features.month]], dtype=np.float32)
     print(f"Input data for prediction: {input_data}")
 
     try:
+        # Perform the prediction
         predicted_sales = pipeline.predict(input_data)
         
+        # Convert numpy.float32 to standard float for JSON serialization
+        predicted_sales_value = float(predicted_sales[0])
+
+        # Return the response with the converted float value
         return {
             "input": {
                 "hour": features.hour,
                 "day": features.day,
                 "month": features.month
             },
-            "predicted_sales": predicted_sales[0]
+            "predicted_sales": predicted_sales_value
         }
     except Exception as e:
         print(f"Prediction failed: {str(e)}")

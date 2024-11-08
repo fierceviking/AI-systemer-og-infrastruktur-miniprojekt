@@ -1,8 +1,6 @@
 import xgboost as xgb
 import pandas as pd
 from sklearn.pipeline import Pipeline
-from sklearn.svm import SVR
-from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
@@ -122,10 +120,12 @@ def main():
 
     pipeline.fit(X_train, y_train)
 
-    joblib.dump(pipeline, "SVR_pipeline.joblib")
-    print("Model saved as SVR_pipeline.joblib")
+    joblib.dump(pipeline, "XGB_pipeline.joblib")
+    print("Model saved as XGB_pipeline.joblib")
 
     y_pred = pipeline.predict(X_test)
+
+    print(r2_score(y_test, y_pred))
 
     plot_y_test_vs_y_pred(y_test, y_pred)
 
