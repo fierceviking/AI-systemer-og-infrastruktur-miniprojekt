@@ -47,7 +47,7 @@ def plot_y_test_vs_y_pred(y_test, y_pred):
     y_pred_sorted = pd.Series(y_pred, index=y_test.index).sort_index()
     
     # Plot both y_test and y_pred
-    plt.plot(y_test_sorted, label='Actual Values (y_test)', color='blue', alpha=0.7)
+    plt.plot(y_test, label='Actual Values (y_test)', color='blue', alpha=0.7)
     plt.plot(y_pred_sorted, label='Predicted Values (y_pred)', color='red', alpha=0.7, linestyle='dashed')
     
     plt.xlabel("Index")
@@ -101,9 +101,19 @@ def main():
 
     split_index = int(len(df) * 0.8)
     X_train, y_train = X.iloc[:split_index], y.iloc[:split_index]
+    X_test, y_test = X.iloc[split_index:], y.iloc[split_index:]
 
     scaler = StandardScaler()
-    model = SVR(kernel='sigmoid', gamma='scale', degree=8, coef0=0.01, C=1)
+    # model = SVR(kernel='sigmoid', gamma='scale', degree=8, coef0=0.01, C=1)
+    model = xgb.XGBRegressor(
+        max_depth=5,
+        learning_rate=0.05,
+        n_estimators=1000,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        min_child_weight=10,
+        alpha=0.1,
+        random_state = 42)
 
     pipeline = Pipeline([
         ('scaler', scaler),
@@ -114,6 +124,10 @@ def main():
 
     joblib.dump(pipeline, "SVR_pipeline.joblib")
     print("Model saved as SVR_pipeline.joblib")
+
+    y_pred = pipeline.predict(X_test)
+
+    plot_y_test_vs_y_pred(y_test, y_pred)
 
 if __name__ == "__main__":
     main()
