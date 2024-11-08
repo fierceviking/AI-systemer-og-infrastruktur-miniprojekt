@@ -49,11 +49,7 @@ time.sleep(5)  # Wait a few seconds for the container to be ready
 payload = {
     "day": 15,
     "month": 6,
-    "hour": 14,
-    "Classic": 100,
-    "Chicken": 50,
-    "Supreme": 30,
-    "Veggie": 20
+    "hour": 20
 }
 
 try:

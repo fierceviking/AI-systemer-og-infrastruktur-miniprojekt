@@ -4,13 +4,9 @@ host_port = 8000
 
 # Define the payload
 payload = {
-    "day": 2,
+    "day": 5,
     "month": 3,
-    "hour": 19,
-    "Classic": 3,
-    "Chicken": 1,
-    "Supreme": 1,
-    "Veggie": 4
+    "hour": 11
 }
 
 # Send a POST request

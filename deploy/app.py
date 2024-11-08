@@ -24,7 +24,7 @@ async def predict(data: dict):
     try:
         # Extract and prepare the input data
         logging.info(f"Received data: {data}")
-        features = np.array([data[key] for key in ['day', 'month', 'hour', 'Classic', 'Chicken', 'Supreme', 'Veggie']]).reshape(1, -1)
+        features = np.array([data[key] for key in ['day', 'month', 'hour']]).reshape(1, -1)
         input_name = session.get_inputs()[0].name
         pred = session.run(None, {input_name: features.astype(np.float32)})
 

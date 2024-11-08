@@ -8,7 +8,8 @@ import onnx
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 import os
-
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.pipeline import Pipeline
 
 def load_data(file_path):
     # Load the dataset
@@ -21,9 +22,9 @@ def load_data(file_path):
         print("Column 'order_timestamp_hour' not found. Using index as time axis for plotting.")
 
     # Define the feature set and the target variable
-    features = ['day', 'month', 'hour', 'Classic', 'Chicken', 'Supreme', 'Veggie']
+    features = ['day', 'month', 'hour'] # , 'lag_total_sales_1', 'lag_total_sales_3', 'lag_total_sales_5'
     x = data[features]
-    y = data['total_sales']
+    y = data['total_quantity']
     return data, x, y
 
 def cross_val_evaluate(model, x, y, tscv):
@@ -33,15 +34,22 @@ def cross_val_evaluate(model, x, y, tscv):
     mae_scores = []
     
     for train_index, test_index in tscv.split(x):
-        x_train, x_test = x.iloc[train_index], x.iloc[test_index]
-        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        # Split data into training and testing sets
+        x_train, x_test = x.values[train_index], x.values[test_index]
+        y_train, y_test = y.values[train_index], y.values[test_index]
+
+        # Create a pipeline with the scaler and the model
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            ('regressor', model)
+        ])
         
-        # Fit the model
-        model.fit(x_train, y_train)
+        # Fit the pipeline on the training data
+        pipeline.fit(x_train, y_train)
         
         # Predict and store
-        y_pred = model.predict(x_test)
-        fold_predictions.append((test_index, y_pred))  # Store predictions with test indices for later plotting
+        y_pred = pipeline.predict(x_test)
+        fold_predictions.append((test_index, y_pred))
         mse = mean_squared_error(y_test, y_pred)
         mse_scores.append(mse)
         rmse_scores.append(np.sqrt(mse))
@@ -51,7 +59,9 @@ def cross_val_evaluate(model, x, y, tscv):
     avg_mse = np.mean(mse_scores)
     avg_rmse = np.mean(rmse_scores)
     avg_mae = np.mean(mae_scores)
-    return fold_predictions, avg_mse, avg_mae, avg_rmse, model, x_train
+    
+    return fold_predictions, avg_mse, avg_mae, avg_rmse, pipeline, x_train
+
 
 def plot(data, y, preds, model_name):
     # Plot actual vs. predicted for the specified model
@@ -74,17 +84,17 @@ def plot(data, y, preds, model_name):
         plt.plot(y.index, y_pred_combined, label=f'Predicted - {model_name}', alpha=0.7)
 
     plt.xlabel("Time" if 'order_timestamp_hour' in data.columns else "Index")
-    plt.ylabel("Total Sales")
+    plt.ylabel("Total Quantity")
     plt.title(f"{model_name} Regression: Actual vs. Predicted (Full Series)")
     plt.legend()
     plt.show()
 
-def save_model(model, x_train, model_type):
-    # Define initial type for the conversion (e.g., FloatTensorType)
+def save_model(pipeline, x_train, model_type):
+    # Define initial type for the conversion
     initial_type = [('float_input', FloatTensorType([None, x_train.shape[1]]))]
 
-    # Convert to ONNX format
-    onnx_model = convert_sklearn(model, initial_types=initial_type)
+    # Convert the pipeline to ONNX format
+    onnx_model = convert_sklearn(pipeline, initial_types=initial_type)
 
     # Ensure the output directory exists
     output_dir = "deploy"
@@ -100,7 +110,7 @@ def save_model(model, x_train, model_type):
 def main():
     # Variable
     file_path = 'deploy/new_pizza_sales.csv'
-    model_type = 'Ridge'  # Change to 'Lasso' or 'ElasticNet' as needed
+    model_type = 'Ridge'  # 'Ridge', 'Lasso', or 'ElasticNet'
 
     data, x, y = load_data(file_path)
 
@@ -119,13 +129,13 @@ def main():
         return
 
     # Evaluate the chosen model
-    preds, avg_mse, avg_mae, avg_rmse, finished_model, x_train = cross_val_evaluate(model, x, y, tscv)
-
+    preds, avg_mse, avg_mae, avg_rmse, pipeline, x_train = cross_val_evaluate(model, x, y, tscv)
+    
     # Print out average metrics
     print(f"{model_type} - Average MSE: {avg_mse:.2f}, Average MAE: {avg_mae:.2f}, Average RMSE: {avg_rmse:.2f}")
 
     # Save model
-    save_model(finished_model, x_train, model_type)
+   # save_model(pipeline, x_train, model_type)
 
     # Plot results
     plot(data, y, preds, model_type)
