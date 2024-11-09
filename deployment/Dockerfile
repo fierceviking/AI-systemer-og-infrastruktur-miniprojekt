@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir fastapi uvicorn onnxruntime numpy pydantic
 EXPOSE 5000
 
 # Start the FastAPI app using Uvicorn, specifying the correct app module location
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
+CMD ["uvicorn", "deployment.app:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
