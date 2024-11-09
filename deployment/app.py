@@ -8,7 +8,7 @@ import uvicorn
 app = FastAPI()
 
 # Loading the ONNX model
-model_path = "deploy/xgb_model.onnx"  # Update based on your chosen model's file name
+model_path = "deployment/deploy/xgb_model.onnx"
 try:
     model = ort.InferenceSession(model_path)
 except Exception as e:
@@ -17,7 +17,7 @@ except Exception as e:
 
 class PizzaSalesFeatures(BaseModel):
     hour: float
-    day: float
+    day_of_week: float
     month: float
 
 @app.get("/")
@@ -29,7 +29,7 @@ def index():
 @app.post("/predict")
 def predict_pizza_sales(features: PizzaSalesFeatures):
     # Prepare the input data as a numpy array
-    input_data = np.array([[features.hour, features.day, features.month]], dtype=np.float32)
+    input_data = np.array([[features.hour, features.day_of_week, features.month]], dtype=np.float32)
     print(f"Original input data for prediction: {input_data}")
 
     try:
@@ -45,7 +45,7 @@ def predict_pizza_sales(features: PizzaSalesFeatures):
         return {
             "input": {
                 "hour": features.hour,
-                "day": features.day,
+                "day_of_week": features.day_of_week,
                 "month": features.month
             },
             "predicted_sales": predicted_sales_value

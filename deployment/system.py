@@ -90,7 +90,7 @@ def save_model(pipeline, x_train, model_type):
         model = convert_sklearn(pipeline, initial_types=initial_type)
 
     # Ensure the output directory exists
-    output_dir = "deploy"
+    output_dir = "deployment/deploy"
     os.makedirs(output_dir, exist_ok=True)
 
     # Save the model within the deploy folder
@@ -102,15 +102,10 @@ def save_model(pipeline, x_train, model_type):
 # main function
 def main():
     # loading the data
-    df = pd.read_csv('data.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
+    df = pd.read_csv('new_pizza_sales.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
     df = df.reset_index()  # Reset index to make 'order_timestamp_hour' available as a column
-    
-    # Ensure datetime format
-    df['order_timestamp_hour'] = pd.to_datetime(df['order_timestamp_hour'])
-    df['day_of_week'] = df['order_timestamp_hour'].dt.dayofweek
-    df['is_weekend'] = df['day_of_week'].apply(lambda x: 1 if x >= 5 else 0)
 
-    cols = ["hour", "month", "day_of_week", "is_weekend"]
+    cols = ["hour", "month", "day_of_week"]
     target = 'total_quantity'
     x = df[cols]
     y = df[target]
