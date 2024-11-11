@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import numpy as np
 import onnxruntime as ort
@@ -20,11 +21,10 @@ class PizzaSalesFeatures(BaseModel):
     day_of_week: float
     month: float
 
-@app.get("/")
+@app.get("/", response_class=RedirectResponse)
 def index():
-    return {
-        "Hello": "Welcome to the pizza sales prediction service! Access the API docs at /docs."
-    }
+    url = "/docs"
+    return RedirectResponse(url)
 
 @app.post("/predict")
 def predict_pizza_sales(features: PizzaSalesFeatures):
