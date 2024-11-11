@@ -1,0 +1,15 @@
+findspark
+pyspark
+pandas
+matplotlib
+seaborn
+xgboost
+sklearn
+skl2onnx
+onnxmltools
+onnxruntime
+numpy
+requests
+fastapi
+uvicorn
+pydantic

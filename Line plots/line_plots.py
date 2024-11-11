@@ -4,7 +4,6 @@ warnings.filterwarnings("ignore")
 import os
 import datetime
 import pyspark
-import os
 import sys
 
 os.environ['PYSPARK_PYTHON'] = sys.executable
