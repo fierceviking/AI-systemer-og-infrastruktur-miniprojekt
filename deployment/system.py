@@ -59,12 +59,16 @@ def cross_val_evaluate(model, x, y, filter_outliers: bool, tscv):
         y_train, y_test = y.values[train_index], y.values[test_index]
 
         if filter_outliers:
+            # Calculate IQR and upper bound
             iqr = np.quantile(y_train, 0.75) - np.quantile(y_train, 0.25)
             upper_bound = 1.5 * iqr + np.quantile(y_train, 0.75)
-            print(upper_bound)
+            
+            # Filter outliers in y_train and corresponding x_train values
+            inliers = y_train <= upper_bound
+            x_train, y_train = x_train[inliers], y_train[inliers]
 
         # Create a pipeline with the scaler and the model        
-        # Fit the pipeline on the training data
+        # Fit the pipeline on the filtered training data
         model.fit(x_train, y_train)
         
         # Predict and store
@@ -83,6 +87,7 @@ def cross_val_evaluate(model, x, y, filter_outliers: bool, tscv):
         plot_y_test_vs_y_pred(last_y_test, last_y_pred)
     
     return fold_predictions, mse_scores, mae_scores, rmse_scores, model, x_train
+
 
 def save_model(pipeline, x_train, model_type):
     # Define initial type for the conversion
@@ -128,7 +133,7 @@ def main():
         alpha=0.1,
         random_state = 42)
     
-    preds, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, True, tscv)
+    preds, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, False, tscv)
     for i in range(len(mse)):
         print(f"Scores for model @ iteration {i}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
 
