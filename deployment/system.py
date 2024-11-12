@@ -43,7 +43,7 @@ def plot_y_test_vs_y_pred(y_test, y_pred, title_size=14, label_size=12, legend_s
     
     plt.show()
 
-def cross_val_evaluate(model, x, y, tscv):
+def cross_val_evaluate(model, x, y, filter_outliers: bool, tscv):
     fold_predictions = []
     mse_scores = []
     rmse_scores = []
@@ -57,6 +57,11 @@ def cross_val_evaluate(model, x, y, tscv):
         # Split data into training and testing sets
         x_train, x_test = x.values[train_index], x.values[test_index]
         y_train, y_test = y.values[train_index], y.values[test_index]
+
+        if filter_outliers:
+            iqr = np.quantile(y_train, 0.75) - np.quantile(y_train, 0.25)
+            upper_bound = 1.5 * iqr + np.quantile(y_train, 0.75)
+            print(upper_bound)
 
         # Create a pipeline with the scaler and the model        
         # Fit the pipeline on the training data
@@ -123,7 +128,7 @@ def main():
         alpha=0.1,
         random_state = 42)
     
-    preds, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, tscv)
+    preds, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, True, tscv)
     for i in range(len(mse)):
         print(f"Scores for model @ iteration {i}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
 
