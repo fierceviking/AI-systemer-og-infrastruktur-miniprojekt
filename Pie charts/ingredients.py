@@ -37,7 +37,7 @@ def bar_chart(df, filter_size, feature='pizza_ingredients'):
         label=df_filtered[feature],
         width=.6
         )
-    plt.title(f"Bar chart of {feature} (>5000 quantities)")
+    plt.title(f"Bar chart of {feature} (>{filter_size} quantities)")
     plt.xticks(rotation=90, ha='right',fontsize=10)
     plt.ylabel("Quantity")
     # plt.legend()
