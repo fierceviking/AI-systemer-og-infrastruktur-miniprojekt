@@ -133,7 +133,7 @@ def main():
         alpha=0.1,
         random_state = 42)
     
-    preds, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, False, tscv)
+    preds, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, True, tscv)
     for i in range(len(mse)):
         print(f"Scores for model @ iteration {i}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
 
