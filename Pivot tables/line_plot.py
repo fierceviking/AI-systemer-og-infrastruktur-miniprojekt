@@ -20,7 +20,6 @@ from pyspark.sql.functions import to_timestamp
 def edit_data(df_spark, size_or_category):
     df_spark = df_spark.withColumn('quantity', df_spark['quantity'].cast(DecimalType()))
 
-    # 1. How can we compare the sales across 24 hours of the day? (Bar chart)
     exc1_df = df_spark.select(size_or_category, 'order_time', 'quantity')
 
     # Here we collect the data and columns to convert the pyspark dataframe to a pandas dataframe
@@ -42,10 +41,7 @@ def edit_data(df_spark, size_or_category):
     return aggregated_df
 
 def line_plot(df_edited, size_or_category):
-    # The figure size is defined here
     plt.figure(figsize=(12, 6))
-
-    # The plot is created with seaborn
     sns.lineplot(data=df_edited, x='hour', y='quantity', hue=size_or_category, marker='o', palette='tab10')
 
     # Better name
@@ -54,7 +50,6 @@ def line_plot(df_edited, size_or_category):
     else:
         size_or_category = 'Pizza Category'
 
-    # Boiler plate figure code
     plt.title(f'Pizza Orders per Hour Colored by {size_or_category}', fontsize=20)
     plt.xlabel('Hour of Day', fontsize=20)
     plt.ylabel('Quantity of Pizzas', fontsize=20)
@@ -77,10 +72,8 @@ def main():
         df_edited = edit_data(df_spark, type)
         line_plot(df_edited, type)
     
-    spark.stop() # Stops the pyspark session
+    spark.stop()
 
 
 if __name__ == '__main__':
     main()
-
-# DISCLAIMER: Notes haven't been edited. May be incorrect

@@ -29,7 +29,7 @@ def hourly_sales(pyspark_dataframe):
     exc1_df = pyspark_dataframe.select("order_date", "order_time", "quantity")
 
 
-    # Code from Haomin start -->
+    # Code from Haomin Yu start -->
     # Cast 'order_time' from string to timestamp
     exc1_df = exc1_df.withColumn("order_time", col("order_time").cast("string"))
     exc1_df = exc1_df.withColumn("order_time", substring(col("order_time"), 12, 8))
@@ -38,13 +38,11 @@ def hourly_sales(pyspark_dataframe):
         concat(col('order_date'), lit(' '), col('order_time'))
     )
     
-    
     exc1_df = exc1_df.withColumn(
         'day_of_week',
         dayofweek(to_timestamp(col('order_datetime'), 'M/d/yyyy HH:mm:ss'))  # Specify the format
     )
-
-    # Code from Haomin end <--
+    # Code from Haomin Yu end <--
 
     exc1_df = exc1_df.drop('order_datetime', 'order_date') # Here we drop the unwanted columns that were used for order_datetime
 
