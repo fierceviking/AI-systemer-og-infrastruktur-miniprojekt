@@ -10,37 +10,42 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import xgboost as xgb
 import matplotlib.pyplot as plt
 
-def plot_y_test_vs_y_pred(y_test, y_pred, title_size=14, label_size=12, legend_size=10, tick_size=10):
+def plot_y_test_vs_y_pred(y_test, y_pred, title_size=16, label_size=14, legend_size=10, tick_size=10):
+    # Plot actual vs predicted
     plt.figure(figsize=(10, 6))
     
-    # Ensure y_test and y_pred are pandas Series to retain their indices (which should be datetime)
     if isinstance(y_test, np.ndarray):
         y_test = pd.Series(y_test)
     if isinstance(y_pred, np.ndarray):
         y_pred = pd.Series(y_pred)
     
-    # Sort values for a smoother plot, useful if y_test is not sorted by time or index
     y_test_sorted = y_test.sort_index()
     y_pred_sorted = y_pred.sort_index()
 
-    # Plot both y_test and y_pred, using the index (which is datetime)
     plt.plot(y_test_sorted.index, y_test_sorted, label='Actual Values (y_test)', color='blue', alpha=0.7)
     plt.plot(y_pred_sorted.index, y_pred_sorted, label='Predicted Values (y_pred)', color='red', alpha=0.7, linestyle='dashed')
     
-    # Set axis labels and title with font sizes
     plt.xlabel("Date", fontsize=label_size)
     plt.ylabel("Target Value", fontsize=label_size)
     plt.title("Comparison of Actual and Predicted Values", fontsize=title_size)
-    
-    # Set legend font size
     plt.legend(fontsize=legend_size)
-    
-    # Set tick label font sizes
-    plt.tick_params(axis='both', which='major', labelsize=tick_size)
-    
-    # Rotate date labels on the x-axis for better readability
     plt.xticks(rotation=20, ha="right")
+    plt.tick_params(axis='both', which='major', labelsize=tick_size)
+    plt.show()
     
+    # Calculate residuals
+    residuals = y_test - y_pred
+
+    # Plot residuals
+    plt.figure(figsize=(10, 6))
+    plt.plot(residuals.index, residuals, label='Residuals (y_test - y_pred)', color='purple', alpha=0.7)
+    plt.axhline(0, color='black', linestyle='--', linewidth=1)
+    plt.xlabel("Date", fontsize=label_size)
+    plt.ylabel("Residual Value", fontsize=label_size)
+    plt.title("Residuals Plot", fontsize=title_size)
+    plt.legend(fontsize=legend_size)
+    plt.xticks(rotation=20, ha="right")
+    plt.tick_params(axis='both', which='major', labelsize=tick_size)
     plt.show()
 
 def cross_val_evaluate(model, x, y, filter_outliers: bool, tscv):
