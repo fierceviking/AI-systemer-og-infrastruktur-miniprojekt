@@ -3,7 +3,7 @@ import os
 import pyspark
 from pyspark.sql import SparkSession
 from pyspark.sql.types import DecimalType
-from pyspark.sql.functions import sum, col
+from pyspark.sql.functions import sum, col, round
 import matplotlib.pyplot as plt
 import pandas as pd
 import warnings
@@ -40,9 +40,9 @@ def pivot_table(df):
     # Creates the pyspark pivot table
     df_pivot_spark = df.groupBy("pizza_category", "pizza_size") \
         .agg(sum("total_price").alias("Total Income"), 
-            (sum("total_price") / total_revenue * 100).alias("Income in Percentage"), 
+            round((sum("total_price") / total_revenue * 100), 2).alias("Income in Percentage"), 
             sum("quantity").alias("Quantity of Pizzas"), 
-            (sum("quantity") / total_sale * 100).alias("Quantities in Percentage"))\
+            round((sum("quantity") / total_sale * 100), 2).alias("Quantities in Percentage"))\
         .orderBy(col("Total Income").desc(), col("Quantity of Pizzas").desc())
     
     # Rename the groupBy columns
@@ -53,8 +53,6 @@ def pivot_table(df):
     return df_pivot_spark
 
 def better_looking_pivot_table(df_pivot_spark):
-    
-    # Converst to Pandas
     df_pivot_pandas = df_pivot_spark.toPandas()
 
     fig, ax = plt.subplots(figsize=(12, 6)) # Creates the subplot
@@ -78,7 +76,7 @@ def main():
 
     better_looking_pivot_table(df_pivot_spark)
     
-    spark.stop() # Stops the pyspark session
+    spark.stop() 
 
 if __name__ == '__main__':
     main()
