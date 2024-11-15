@@ -74,8 +74,10 @@ def cross_val_evaluate(model, x, y, filter_outliers: bool, tscv):
 
         # Create a pipeline with the scaler and the model        
         # Fit the pipeline on the filtered training data
-        model.fit(x_train, y_train)
+        model.fit(x_train, y_train, eval_set = [(x_train, y_train), (x_test, y_test)])
         
+        evals_result = model.evals_result()
+
         # Predict and store
         y_pred = model.predict(x_test)
         fold_predictions.append((test_index, y_pred))
@@ -136,9 +138,10 @@ def main():
         colsample_bytree=0.8,
         min_child_weight=10,
         alpha=0.1,
-        random_state = 42)
+        random_state = 42
+    )
     
-    preds, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, True, tscv)
+    _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, True, tscv)
     for i in range(len(mse)):
         print(f"Scores for model @ iteration {i}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
 
