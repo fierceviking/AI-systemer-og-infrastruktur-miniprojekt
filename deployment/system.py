@@ -9,6 +9,10 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import xgboost as xgb
 import matplotlib.pyplot as plt
+from sklearn.svm import SVR
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import ElasticNet
 
 def plot_y_test_vs_y_pred(y_test, y_pred, title_size=16, label_size=14, legend_size=10, tick_size=10):
     # Plot actual vs predicted
@@ -98,8 +102,8 @@ def cross_val_evaluate(model, x, y, tscv, filter_outliers: bool = False):
         last_y_pred = pd.Series(y_pred, index=y.iloc[test_index].index)
     
     # Plot the last fold's results
-    if last_y_test is not None and last_y_pred is not None:
-        plot_y_test_vs_y_pred(last_y_test, last_y_pred)
+    #if last_y_test is not None and last_y_pred is not None:
+    #    plot_y_test_vs_y_pred(last_y_test, last_y_pred)
     
     print(bounds)
     
@@ -164,22 +168,27 @@ def plot_data_with_outlier_threshold(data, iqr_factor = 1.5):
     # Show the plot
     plt.show()
 
-# main function
 def main():
+    # 'evaluate' multiple models with different lag features. 'final' model is saved
+    evaluate_final = 'evaluate' # 'evaluate' or 'final'
+
     # loading the data
     df = pd.read_csv('new_pizza_sales.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
     df = df.reset_index()  # Reset index to make 'order_timestamp_hour' available as a column
 
+    models = {}
+    cols_of_features = {}
+
     cols = ["hour", "month", "day_of_week"]
     target = 'total_quantity'
-    x = df[cols]
+    x_no_lag = df[cols]
     y = df[target]
 
     # plot_data_with_outlier_threshold(y)
 
     tscv = TimeSeriesSplit()
 
-    model = xgb.XGBRegressor(
+    model_xgb = xgb.XGBRegressor(
         objective = 'reg:squarederror',
         max_depth=3,
         learning_rate=0.05,
@@ -191,11 +200,43 @@ def main():
         random_state = 42
     )
     
-    _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, tscv, False)
-    for i in range(len(mse)):
-        print(f"Scores for model @ split {i+1}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
+    models['XGB'] = model_xgb
+    cols_of_features['No lag'] = x_no_lag
 
-    save_model(best_model, x_train, "XGB")
+    if evaluate_final == 'evaluate':
+        model_svm = Pipeline([
+            ('scaler', StandardScaler()),  # SVM usually performs better with scaled features
+            ('svr', SVR(kernel='rbf', C=1.0, epsilon=0.1))])
+        model_elastic = ElasticNet(
+            alpha=0.1, 
+            l1_ratio=0.5, 
+            max_iter=1000,    
+            random_state=42)
+        models['SVM'] = model_svm
+        models['Elastic Net'] = model_elastic
+        
+        cols.extend(['lag_total_quantity_1','lag_total_quantity_3','lag_total_quantity_5','lag_total_sales_1','lag_total_sales_3','lag_total_sales_5'])
+        x_quant_sales = df[cols]
+        cols_of_features['Quantity and sales lag'] = x_quant_sales
+        
+        cols.extend(['lag_S_count_1','lag_S_count_3','lag_S_count_5','lag_M_count_1','lag_M_count_3','lag_M_count_5','lag_L_count_1','lag_L_count_3',
+                     'lag_L_count_5','lag_XL_count_1','lag_XL_count_3','lag_XL_count_5','lag_XXL_count_1','lag_XXL_count_3','lag_XXL_count_5',
+                     'lag_Classic_1','lag_Classic_3','lag_Classic_5','lag_Chicken_1','lag_Chicken_3','lag_Chicken_5','lag_Supreme_1','lag_Supreme_3',
+                     'lag_Supreme_5','lag_Veggie_1','lag_Veggie_3','lag_Veggie_5'])
+        x_all_lag = df[cols]
+        cols_of_features['All lag features'] = x_all_lag
+
+    for model_name, model in models.items():
+        print('---------------------------------------------------------------')
+        print(model_name)
+        for features_name, x in cols_of_features.items():
+            print(f'\n{features_name}')
+            _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, tscv, False)
+            for i in range(len(mse)):
+                print(f"Scores for model @ split {i+1}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
+
+    if evaluate_final == 'final':
+        save_model(best_model, x_train, "XGB")
 
 # Run the main function
 if __name__ == "__main__":
