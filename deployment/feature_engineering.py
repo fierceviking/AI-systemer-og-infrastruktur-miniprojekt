@@ -4,6 +4,7 @@ import warnings
 import findspark
 from pyspark.sql import SparkSession, Window
 import logging
+from pyspark.sql.types import DecimalType
 from pyspark.sql.functions import col, substring, concat, lit, to_timestamp, \
     month, sum, hour, dayofmonth, when, to_date, date_trunc, \
     lag, regexp_replace, dayofweek
@@ -22,16 +23,18 @@ def load_data(file_name):
     df_spark = spark.read.csv(data, header=True, inferSchema=True)
     return df_spark
 
-def convert_to_datetime(df_spark):
+def convert_to_datetime(exc1_df):
     """
     This function adds month, day_of_week, and hour columns to the DataFrame based on 'order_date' and 'order_time'.
     """
     # Select relevant columns
-    exc1_df = df_spark.select("order_date", "order_time", "quantity", "total_price")
+  #  exc1_df = df_spark.select("order_date", "order_time", "quantity", "total_price")
 
-    # Correct data types for quantity and total_price
-    exc1_df = exc1_df.withColumn("quantity", col("quantity").cast("int"))
-    exc1_df = exc1_df.withColumn("total_price", col("total_price").cast("float"))
+    # DecimalType ensures that pyspark can sum quantity and total_price
+    # (10, 2) ensures that pyspark can sum with 2 decimals and 10 digits total
+    # FloatType can give floating-point precision errors
+    exc1_df = exc1_df.withColumn("quantity", exc1_df["quantity"].cast(DecimalType()))
+    exc1_df = exc1_df.withColumn("total_price", exc1_df["total_price"].cast(DecimalType(10, 2)))
 
     # Standardize 'order_date' format
     exc1_df = exc1_df.withColumn("order_date", regexp_replace(col("order_date"), "-", "/"))
@@ -58,6 +61,15 @@ def create_dataframe(df_spark):
     df_spark = df_spark.groupBy(
         'order_timestamp_hour', 'day_of_week','month', 'hour'
         ).agg(
+        sum(when(col("pizza_size") == "S", col("quantity")).otherwise(0)).alias("S_count"),
+        sum(when(col("pizza_size") == "M", col("quantity")).otherwise(0)).alias("M_count"),
+        sum(when(col("pizza_size") == "L", col("quantity")).otherwise(0)).alias("L_count"),
+        sum(when(col("pizza_size") == "XL", col("quantity")).otherwise(0)).alias("XL_count"),
+        sum(when(col("pizza_size") == "XXL", col("quantity")).otherwise(0)).alias("XXL_count"),
+        sum(when(col("pizza_category") == 'Classic', col("quantity")).otherwise(0)).alias('Classic'),
+        sum(when(col("pizza_category") == 'Chicken', col("quantity")).otherwise(0)).alias('Chicken'),
+        sum(when(col("pizza_category") == 'Supreme', col("quantity")).otherwise(0)).alias('Supreme'),
+        sum(when(col("pizza_category") == 'Veggie', col("quantity")).otherwise(0)).alias('Veggie'),
         sum(col("quantity")).alias("total_quantity"),  # Total quantity of pizzas sold per hour
         sum('total_price').alias('total_sales') # Total sales pr hour
     ).orderBy('order_timestamp_hour', 'day_of_week','month', 'hour')
@@ -68,6 +80,16 @@ def create_dataframe(df_spark):
 
     return df_spark
 
+def lag_variable(df_spark, feature, offset):
+    # Define a window specification to order by 'order_timestamp_hour'
+    window_spec = Window.partitionBy('day_of_week').orderBy('order_timestamp_hour')
+    df_spark = df_spark.withColumn(f'lag_{feature}_{offset}', 
+                                   lag(feature, offset=offset).over(window_spec))
+
+    # Replace missing values with 0
+    df_spark = df_spark.fillna(0)
+    return df_spark
+
 def main():
     df = load_data('../pizza_sales.csv')
     # df.show(10)
@@ -76,6 +98,13 @@ def main():
     # df_hour.show(5)
 
     df_featured = create_dataframe(df_hour)
+
+    features = ['total_quantity', 'total_sales', 'S_count', 'M_count', 'L_count', 'XL_count', 'XXL_count', 'Classic', 'Chicken', 'Supreme', 'Veggie']
+    for feature in features:
+
+        df_featured = lag_variable(df_featured, feature, offset=1)
+        df_featured = lag_variable(df_featured, feature, offset=3)
+        df_featured = lag_variable(df_featured, feature, offset=5)
 
     df_featured.show(20)
 
