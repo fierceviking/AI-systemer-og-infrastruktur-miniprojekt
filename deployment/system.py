@@ -6,7 +6,7 @@ from onnxmltools import convert_xgboost
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 import xgboost as xgb
 import matplotlib.pyplot as plt
 
@@ -25,7 +25,7 @@ def plot_y_test_vs_y_pred(y_test, y_pred, title_size=16, label_size=14, legend_s
     plt.plot(y_test_sorted.index, y_test_sorted, label='Actual Values (y_test)', color='blue', alpha=0.7)
     plt.plot(y_pred_sorted.index, y_pred_sorted, label='Predicted Values (y_pred)', color='red', alpha=0.7, linestyle='dashed')
     
-    plt.xlabel("Date", fontsize=label_size)
+    plt.xlabel("Hour", fontsize=label_size)
     plt.ylabel("Target Value", fontsize=label_size)
     plt.title("Comparison of Actual and Predicted Values", fontsize=title_size)
     plt.legend(fontsize=legend_size)
@@ -40,7 +40,7 @@ def plot_y_test_vs_y_pred(y_test, y_pred, title_size=16, label_size=14, legend_s
     plt.figure(figsize=(10, 6))
     plt.plot(residuals.index, residuals, label='Residuals (y_test - y_pred)', color='purple', alpha=0.7)
     plt.axhline(0, color='black', linestyle='--', linewidth=1)
-    plt.xlabel("Date", fontsize=label_size)
+    plt.xlabel("Hour", fontsize=label_size)
     plt.ylabel("Residual Value", fontsize=label_size)
     plt.title("Residuals Plot", fontsize=title_size)
     plt.legend(fontsize=legend_size)
@@ -48,11 +48,12 @@ def plot_y_test_vs_y_pred(y_test, y_pred, title_size=16, label_size=14, legend_s
     plt.tick_params(axis='both', which='major', labelsize=tick_size)
     plt.show()
 
-def cross_val_evaluate(model, x, y, filter_outliers: bool, tscv):
+def cross_val_evaluate(model, x, y, tscv, filter_outliers: bool = False):
     fold_predictions = []
     mse_scores = []
     rmse_scores = []
     mae_scores = []
+    bounds = []
     
     # Track last fold data for plotting
     last_y_test = None
@@ -64,20 +65,26 @@ def cross_val_evaluate(model, x, y, filter_outliers: bool, tscv):
         y_train, y_test = y.values[train_index], y.values[test_index]
 
         if filter_outliers:
-            # Calculate IQR and upper bound
-            iqr = np.quantile(y_train, 0.75) - np.quantile(y_train, 0.25)
-            upper_bound = 1.5 * iqr + np.quantile(y_train, 0.75)
+            # Calculate IQR and both upper and lower bounds for y_train (target variable)
+            Q1 = np.quantile(y_train, 0.25)
+            Q3 = np.quantile(y_train, 0.75)
+            IQR = Q3 - Q1
             
-            # Filter outliers in y_train and corresponding x_train values
-            inliers = y_train <= upper_bound
+            print(f"Q1: {Q1}, Q3: {Q3}, IQR: {IQR}")
+            
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            bounds.append((lower_bound, upper_bound))
+
+            # Identify outliers in y_train and filter x_train and y_train accordingly
+            inliers = (y_train >= lower_bound) & (y_train <= upper_bound)
             x_train, y_train = x_train[inliers], y_train[inliers]
 
-        # Create a pipeline with the scaler and the model        
-        # Fit the pipeline on the filtered training data
-        model.fit(x_train, y_train, eval_set = [(x_train, y_train), (x_test, y_test)])
-        
-        evals_result = model.evals_result()
+            print(f"Outliers removed: {np.sum(~inliers)}")
 
+        # Fit the model on the filtered training data
+        model.fit(x_train, y_train)
+        
         # Predict and store
         y_pred = model.predict(x_test)
         fold_predictions.append((test_index, y_pred))
@@ -87,11 +94,14 @@ def cross_val_evaluate(model, x, y, filter_outliers: bool, tscv):
         mae_scores.append(mean_absolute_error(y_test, y_pred))
         
         # Save the last fold's test data and predictions for plotting
-        last_y_test, last_y_pred = pd.Series(y_test, index=y.iloc[test_index].index), pd.Series(y_pred, index=y.iloc[test_index].index)
+        last_y_test = pd.Series(y_test, index=y.iloc[test_index].index)
+        last_y_pred = pd.Series(y_pred, index=y.iloc[test_index].index)
     
     # Plot the last fold's results
     if last_y_test is not None and last_y_pred is not None:
         plot_y_test_vs_y_pred(last_y_test, last_y_pred)
+    
+    print(bounds)
     
     return fold_predictions, mse_scores, mae_scores, rmse_scores, model, x_train
 
@@ -116,6 +126,44 @@ def save_model(pipeline, x_train, model_type):
         f.write(model.SerializeToString())
     print(f"Model saved to {model_path}")
 
+def plot_data_with_outlier_threshold(data, iqr_factor = 1.5):
+    data = pd.Series(data)
+
+    training_data = data[:int(0.8 * len(data))]
+
+    Q1 = training_data.quantile(0.25)
+    Q3 = training_data.quantile(0.75)
+
+    IQR = Q3 - Q1
+
+    lower_threshold = Q1 - iqr_factor * IQR
+    upper_threshold = Q3 + iqr_factor * IQR
+
+    outliers = training_data[(training_data < lower_threshold) | (training_data > upper_threshold)]
+    non_outliers = training_data[(training_data >= lower_threshold) & (training_data <= upper_threshold)]
+    
+    # Create a plot
+    plt.figure(figsize=(10, 6))
+    
+    # Plot the non-outliers as a plain line
+    plt.plot(non_outliers.index, non_outliers.values, label='Training Data (Non-Outliers)', color='blue', marker='', linestyle='-', linewidth=2)
+    
+    # Plot the outliers as dots
+    plt.scatter(outliers.index, outliers.values, color='red', label='Outliers', zorder=5, s=50)
+    
+    # Plot the outlier threshold lines (lower and upper)
+    # plt.axhline(y=lower_threshold, color='red', linestyle='--', label=f'Lower Threshold ({lower_threshold:.2f})')
+    plt.axhline(y=upper_threshold, color='red', linestyle='--', label=f'Upper Threshold ({upper_threshold:.2f})')
+    
+    # Add labels and title
+    plt.title("Training Data Outliers", fontsize=14)
+    plt.xlabel("Hour", fontsize=16)
+    plt.ylabel("Total quantity", fontsize=16)
+    plt.legend()
+    
+    # Show the plot
+    plt.show()
+
 # main function
 def main():
     # loading the data
@@ -126,6 +174,8 @@ def main():
     target = 'total_quantity'
     x = df[cols]
     y = df[target]
+
+    # plot_data_with_outlier_threshold(y)
 
     tscv = TimeSeriesSplit()
 
@@ -141,9 +191,9 @@ def main():
         random_state = 42
     )
     
-    _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, True, tscv)
+    _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, tscv, False)
     for i in range(len(mse)):
-        print(f"Scores for model @ iteration {i}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
+        print(f"Scores for model @ split {i+1}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
 
     save_model(best_model, x_train, "XGB")
 
