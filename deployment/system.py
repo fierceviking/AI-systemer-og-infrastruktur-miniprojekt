@@ -102,8 +102,8 @@ def cross_val_evaluate(model, x, y, tscv, filter_outliers: bool = False):
         last_y_pred = pd.Series(y_pred, index=y.iloc[test_index].index)
     
     # Plot the last fold's results
-    #if last_y_test is not None and last_y_pred is not None:
-    #    plot_y_test_vs_y_pred(last_y_test, last_y_pred)
+    if last_y_test is not None and last_y_pred is not None:
+        plot_y_test_vs_y_pred(last_y_test, last_y_pred)
     
     print(bounds)
     
@@ -170,7 +170,7 @@ def plot_data_with_outlier_threshold(data, iqr_factor = 1.5):
 
 def main():
     # 'evaluate' multiple models with different lag features. 'final' model is saved
-    evaluate_final = 'evaluate' # 'evaluate' or 'final'
+    evaluate_final = 'final' # 'evaluate' or 'final'
 
     # loading the data
     df = pd.read_csv('new_pizza_sales.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')

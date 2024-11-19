@@ -72,7 +72,7 @@ def create_dataframe(df_spark):
         sum(when(col("pizza_category") == 'Veggie', col("quantity")).otherwise(0)).alias('Veggie'),
         sum(col("quantity")).alias("total_quantity"),  # Total quantity of pizzas sold per hour
         sum('total_price').alias('total_sales') # Total sales pr hour
-    ).orderBy('order_timestamp_hour', 'day_of_week','month', 'hour')
+    ).orderBy('order_timestamp_hour', 'hour')
 
     # Sort dataframe
     df_spark = df_spark.sort('order_timestamp_hour', 'hour')
@@ -81,13 +81,15 @@ def create_dataframe(df_spark):
     return df_spark
 
 def lag_variable(df_spark, feature, offset):
-    # Define a window specification to order by 'order_timestamp_hour'
-    window_spec = Window.partitionBy('day_of_week').orderBy('order_timestamp_hour')
-    df_spark = df_spark.withColumn(f'lag_{feature}_{offset}', 
-                                   lag(feature, offset=offset).over(window_spec))
-
+    # Define a window specification with better partitioning and ordering
+    window_spec = Window.partitionBy('month').orderBy('order_timestamp_hour')
+    
+    # Apply the lag function
+    df_spark = df_spark.withColumn(f'lag_{feature}_{offset}', lag(feature, offset=offset).over(window_spec))
+    
     # Replace missing values with 0
-    df_spark = df_spark.fillna(0)
+    df_spark = df_spark.fillna({f'lag_{feature}_{offset}': 0})
+    
     return df_spark
 
 def main():
