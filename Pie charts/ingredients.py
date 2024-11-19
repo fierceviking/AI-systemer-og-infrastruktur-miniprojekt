@@ -1,12 +1,5 @@
 from pie_chart import load_data
-import warnings
-import logging
-import os
-import pyspark
-import findspark
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, sum, when, count, isnan, split, explode
-import pandas as pd
+from pyspark.sql.functions import col, sum, split, explode
 import matplotlib.pyplot as plt
 
 
@@ -20,7 +13,6 @@ def bar_chart(df, filter_size, feature='pizza_ingredients'):
 
     # GroupBy the ingredients and quantity
     df_feature = df_exploded.groupBy(feature).agg(sum('quantity').alias('quantity'))
-    # df_feature.show(5)
 
     # Convert to pandas DF
     df_pd = df_feature.toPandas()
@@ -28,9 +20,7 @@ def bar_chart(df, filter_size, feature='pizza_ingredients'):
     # Filter the dataframe
     df_filtered = df_pd[df_pd['quantity']>filter_size]
 
-    # Plot
     plt.figure(figsize=(12,8)).set_figheight(6)
-
     plt.bar(
         x=df_filtered.loc[:,feature], 
         height=df_filtered.loc[:,'quantity'],
@@ -40,7 +30,6 @@ def bar_chart(df, filter_size, feature='pizza_ingredients'):
     plt.title(f"Bar chart of {feature} (>{filter_size} quantities)")
     plt.xticks(rotation=90, ha='right',fontsize=10)
     plt.ylabel("Quantity")
-    # plt.legend()
     plt.tight_layout()
     plt.show()
 

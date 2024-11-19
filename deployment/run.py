@@ -11,7 +11,7 @@ container_name = "pizza-sales-container"
 host_port = 5000
 container_port = 5000
 
-# Step 1: Change to the root project directory
+# Change to the root project directory
 print(f"Root project path: {root_path}")
 try:
     os.chdir(root_path)
@@ -19,14 +19,14 @@ except FileNotFoundError:
     print(f"Error: Directory '{root_path}' not found.")
     exit(1)
 
-# Step 2: Check if Docker is running
+# Check if Docker is running
 try:
     subprocess.run(["docker", "info"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 except subprocess.CalledProcessError:
     print("Error: Docker daemon is not running. Please make sure Docker Desktop is open and running.")
     exit(1)
 
-# Step 3: Build the Docker container
+# Build the Docker container
 try:
     # Build the Docker image from the root directory (AI-systemer-og-infrastruktur-miniprojekt)
     subprocess.run(["docker", "build", "-f", "deployment/Dockerfile", "-t", image_name, "."], check=True)
@@ -34,18 +34,16 @@ except subprocess.CalledProcessError as e:
     print(f"Error building Docker image: {e}")
     exit(1)
 
-# Step 4: Run the Docker container (stop any existing container with the same name first)
+# Run the Docker container (stop any existing container with the same name first)
 subprocess.run(["docker", "stop", container_name], stderr=subprocess.DEVNULL)
 subprocess.run(["docker", "rm", container_name], stderr=subprocess.DEVNULL)
 
 try:
-    # Run the container
     subprocess.run(["docker", "run", "-d", "--name", container_name, "-p", f"{host_port}:{container_port}", image_name], check=True)
 except subprocess.CalledProcessError as e:
     print(f"Error running Docker container: {e}")
     exit(1)
 
-# Step 5: Wait for the container to start up
 print("Waiting for the container to start...")
 
 # Retry logic with more retries and longer wait times
@@ -68,8 +66,7 @@ if attempts == max_attempts:
     print("Error: The container did not start in time.")
     exit(1)
 
-
-# Step 6: Send an inference request
+# Send an inference request
 payload = {
     "hour": 14,
     "day_of_week": 6,

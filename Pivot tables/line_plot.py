@@ -1,38 +1,19 @@
 from pizza_pivot import fliter_warning, load_data
-
-import os
-import datetime
-import pyspark
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import findspark
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType, DecimalType
-from pyspark.sql.functions import col
-from pyspark.sql.functions import substring
-from pyspark.sql.functions import concat
-from pyspark.sql.functions import lit
-from pyspark.sql.functions import dayofweek
-from pyspark.sql.functions import to_timestamp
+from pyspark.sql.types import DecimalType
+
 
 def edit_data(df_spark, size_or_category):
     df_spark = df_spark.withColumn('quantity', df_spark['quantity'].cast(DecimalType()))
-
     exc1_df = df_spark.select(size_or_category, 'order_time', 'quantity')
-
-    # Here we collect the data and columns to convert the pyspark dataframe to a pandas dataframe
     exc1_data = exc1_df.collect()
     exc1_cols = exc1_df.columns
 
-    exc1_df = pd.DataFrame(exc1_data, columns=exc1_cols) # The pandas dataframe is created
+    exc1_df = pd.DataFrame(exc1_data, columns=exc1_cols) 
 
-    # Here the in-built function in pandas is used to convert the order time to the datetime format. 
-    # It adds a date, but it doesn't matter since the hour is the only relevant data
     exc1_df['order_time'] = pd.to_datetime(exc1_df['order_time'], format='%H:%M:%S')
-
-    # Here the hour is extracted from the order_time column
     exc1_df['hour'] = exc1_df['order_time'].dt.hour
 
     # Here the quanity is aggregated around day_of_week and hour. 
@@ -57,9 +38,7 @@ def line_plot(df_edited, size_or_category):
     plt.xticks(range(9, 25), fontsize=20)
     plt.yticks(fontsize=20)
     plt.grid(True)
-
     plt.show()
-
 
 def main():
     file_name = '../pizza_sales.csv'
@@ -71,9 +50,6 @@ def main():
     for type in size_or_category:
         df_edited = edit_data(df_spark, type)
         line_plot(df_edited, type)
-    
-    spark.stop()
-
 
 if __name__ == '__main__':
     main()

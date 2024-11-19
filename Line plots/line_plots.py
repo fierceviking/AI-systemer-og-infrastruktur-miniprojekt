@@ -1,8 +1,6 @@
 import warnings
 warnings.filterwarnings("ignore")
-
 import os
-import datetime
 import pyspark
 import sys
 
@@ -14,20 +12,16 @@ import matplotlib.dates as mdate
 import seaborn as sns
 import findspark
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType
 from pyspark.sql.functions import col
 from pyspark.sql.functions import substring
 from pyspark.sql.functions import concat
 from pyspark.sql.functions import lit
 from pyspark.sql.functions import dayofweek
 from pyspark.sql.functions import to_timestamp
-from pyspark.sql.functions import month
 
 def hourly_sales(pyspark_dataframe):
     # 1. How can we compare the sales across 24 hours of the day? (Bar chart)
     exc1_df = pyspark_dataframe.select("order_date", "order_time", "quantity")
-
 
     # Code from Haomin Yu start -->
     # Cast 'order_time' from string to timestamp
@@ -46,22 +40,11 @@ def hourly_sales(pyspark_dataframe):
 
     exc1_df = exc1_df.drop('order_datetime', 'order_date') # Here we drop the unwanted columns that were used for order_datetime
 
-    # debug stuff
-    # ---
-    # exc1_df.show()
-    # print(exc1_df.schema)
-    # ---
-
     # Here we collect the data and columns to convert the pyspark dataframe to a pandas dataframe
     exc1_data = exc1_df.collect()
     exc1_cols = exc1_df.columns
 
     exc1_df = pd.DataFrame(exc1_data, columns=exc1_cols) # The pandas dataframe is created
-
-    # more debugging
-    # ---
-    # print(exc1_df['day_of_week'].unique())
-    # ---
 
     # Here the in-built function in pandas is used to convert the order time to the datetime format. 
     # It adds a date, but it doesn't matter since the hour is the only relevant data
@@ -73,7 +56,7 @@ def hourly_sales(pyspark_dataframe):
     # Here the hour is extracted from the order_time column
     exc1_df['hour'] = exc1_df['order_time'].dt.hour
 
-    # Here the quanity is aggregated around day_of_week and hour. 
+    # Here the quanity is aggregated around day_of_week and hour 
     # This is then summed to get the amount of pizza sales per hour for each weekday
     aggregated_df = exc1_df.groupby(['day_of_week', 'hour'], as_index=False)['quantity'].sum()
 
@@ -81,20 +64,15 @@ def hourly_sales(pyspark_dataframe):
 
     aggregated_df['day_of_week'] = aggregated_df['day_of_week'].map(weekdays)
 
-    # The figure size is defined here
-    plt.figure(figsize=(12, 4))
 
-    # Seaborn plot
+    plt.figure(figsize=(12, 4))
     sns.lineplot(data=aggregated_df, x='hour', y='quantity', hue='day_of_week', marker='o', palette='tab10')
 
-    # Boiler plate figure code
     plt.title('Pizza Orders per Hour Colored by Day of the Week', fontsize=20)
     plt.xlabel(None)
     plt.ylabel(None)
     plt.xticks(range(9, 25), fontsize=20)
     plt.yticks([0, 100, 200, 300, 400], fontsize=20)
-
-    # Allow Seaborn to automatically assign colors in the legend
     plt.legend(title='Day of Week', fontsize=14)
     plt.grid(True)
 
@@ -123,24 +101,14 @@ def daily_sales(spark_dataframe):
     return exc2_pd
 
 def monthly_sales(spark_dataframe):
-    """
-    Plots sales per month. Takes a spark dataframe with some order date and sales quantity.
-    """
-
     exc3_df = spark_dataframe.select('order_date', 'quantity')
 
     exc3_data = exc3_df.collect()
     exc3_cols = exc3_df.columns
 
     exc3_pd = pd.DataFrame(data = exc3_data, columns = exc3_cols)
-
     exc3_pd['order_date'] = pd.to_datetime(exc3_pd['order_date'], format='mixed', dayfirst=True)
-
     exc3_pd = exc3_pd.groupby(exc3_pd['order_date'].dt.month).agg({'quantity': 'sum'})
-
-    print(exc3_pd.head(20))
-
-    print(exc3_pd.columns)
 
     plt.figure(figsize=(12,6))
     sns.lineplot(exc3_pd, x = range(1, 13), y = exc3_pd['quantity'])
@@ -153,21 +121,13 @@ def monthly_sales(spark_dataframe):
 def main():    
     findspark.init()
     spark = SparkSession.builder.appName("pizza_sales").getOrCreate()
-
-
     data = os.path.join(os.path.dirname(__file__), '../pizza_sales.csv')
 
     df_spark = spark.read.csv(data, header=True, inferSchema=True)
 
     hourly_sales(df_spark)
-
     daily_sales(df_spark)
-
     monthly_sales(df_spark)
-
-    # dataframe = daily_sales(df_spark)
-
-    # dataframe.to_csv("daily_sales.csv")
 
 if __name__ == "__main__":
     main()

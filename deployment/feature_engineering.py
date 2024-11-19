@@ -6,30 +6,20 @@ from pyspark.sql import SparkSession, Window
 import logging
 from pyspark.sql.types import DecimalType
 from pyspark.sql.functions import col, substring, concat, lit, to_timestamp, \
-    month, sum, hour, dayofmonth, when, to_date, date_trunc, \
+    month, sum, hour, when, date_trunc, \
     lag, regexp_replace, dayofweek
 
-# Filter warnings
 warnings.filterwarnings("ignore")
 logging.getLogger("py4j").setLevel(logging.ERROR)
 findspark.init()
 spark = SparkSession.builder.appName("pizza_sales").getOrCreate()
 
 def load_data(file_name):
-    # Define data path
     data = os.path.join(os.path.dirname(__file__), file_name)
-
-    # Read data
     df_spark = spark.read.csv(data, header=True, inferSchema=True)
     return df_spark
 
 def convert_to_datetime(exc1_df):
-    """
-    This function adds month, day_of_week, and hour columns to the DataFrame based on 'order_date' and 'order_time'.
-    """
-    # Select relevant columns
-  #  exc1_df = df_spark.select("order_date", "order_time", "quantity", "total_price")
-
     # DecimalType ensures that pyspark can sum quantity and total_price
     # (10, 2) ensures that pyspark can sum with 2 decimals and 10 digits total
     # FloatType can give floating-point precision errors
@@ -46,7 +36,6 @@ def convert_to_datetime(exc1_df):
         to_timestamp(concat(col("order_date"), lit(" "), col("order_time")), "d/M/yyyy HH:mm:ss")
     )
 
-    # Add month, day_of_week, and hour columns
     exc1_df = exc1_df.withColumn("day_of_week", dayofweek(col("order_timestamp")))
     exc1_df = exc1_df.withColumn("month", month(col("order_timestamp")))
     exc1_df = exc1_df.withColumn("hour", hour(col("order_timestamp")))
@@ -94,21 +83,14 @@ def lag_variable(df_spark, feature, offset):
 
 def main():
     df = load_data('../pizza_sales.csv')
-    # df.show(10)
-
     df_hour = convert_to_datetime(df)
-    # df_hour.show(5)
-
     df_featured = create_dataframe(df_hour)
 
     features = ['total_quantity', 'total_sales', 'S_count', 'M_count', 'L_count', 'XL_count', 'XXL_count', 'Classic', 'Chicken', 'Supreme', 'Veggie']
     for feature in features:
-
         df_featured = lag_variable(df_featured, feature, offset=1)
         df_featured = lag_variable(df_featured, feature, offset=3)
         df_featured = lag_variable(df_featured, feature, offset=5)
-
-    df_featured.show(20)
 
     df_featured.toPandas().to_csv('new_pizza_sales.csv')
 

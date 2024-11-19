@@ -1,4 +1,3 @@
-# imports
 import os
 import numpy as np
 import pandas as pd
@@ -15,7 +14,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import ElasticNet
 
 def plot_y_test_vs_y_pred(y_test, y_pred, title_size=16, label_size=14, legend_size=10, tick_size=10):
-    # Plot actual vs predicted
     plt.figure(figsize=(10, 6))
     
     if isinstance(y_test, np.ndarray):
@@ -28,7 +26,6 @@ def plot_y_test_vs_y_pred(y_test, y_pred, title_size=16, label_size=14, legend_s
 
     plt.plot(y_test_sorted.index, y_test_sorted, label='Actual Values (y_test)', color='blue', alpha=0.7)
     plt.plot(y_pred_sorted.index, y_pred_sorted, label='Predicted Values (y_pred)', color='red', alpha=0.7, linestyle='dashed')
-    
     plt.xlabel("Hour", fontsize=label_size)
     plt.ylabel("Target Value", fontsize=label_size)
     plt.title("Comparison of Actual and Predicted Values", fontsize=title_size)
@@ -57,14 +54,12 @@ def cross_val_evaluate(model, x, y, tscv, filter_outliers: bool = False):
     mse_scores = []
     rmse_scores = []
     mae_scores = []
-    bounds = []
     
     # Track last fold data for plotting
     last_y_test = None
     last_y_pred = None
     
     for train_index, test_index in tscv.split(x):
-        # Split data into training and testing sets
         x_train, x_test = x.values[train_index], x.values[test_index]
         y_train, y_test = y.values[train_index], y.values[test_index]
 
@@ -74,11 +69,8 @@ def cross_val_evaluate(model, x, y, tscv, filter_outliers: bool = False):
             Q3 = np.quantile(y_train, 0.75)
             IQR = Q3 - Q1
             
-            print(f"Q1: {Q1}, Q3: {Q3}, IQR: {IQR}")
-            
             lower_bound = Q1 - 1.5 * IQR
             upper_bound = Q3 + 1.5 * IQR
-            bounds.append((lower_bound, upper_bound))
 
             # Identify outliers in y_train and filter x_train and y_train accordingly
             inliers = (y_train >= lower_bound) & (y_train <= upper_bound)
@@ -104,11 +96,8 @@ def cross_val_evaluate(model, x, y, tscv, filter_outliers: bool = False):
     # Plot the last fold's results
     if last_y_test is not None and last_y_pred is not None:
         plot_y_test_vs_y_pred(last_y_test, last_y_pred)
-    
-    print(bounds)
-    
-    return fold_predictions, mse_scores, mae_scores, rmse_scores, model, x_train
 
+    return fold_predictions, mse_scores, mae_scores, rmse_scores, model, x_train
 
 def save_model(pipeline, x_train, model_type):
     # Define initial type for the conversion
@@ -146,7 +135,6 @@ def plot_data_with_outlier_threshold(data, iqr_factor = 1.5):
     outliers = training_data[(training_data < lower_threshold) | (training_data > upper_threshold)]
     non_outliers = training_data[(training_data >= lower_threshold) & (training_data <= upper_threshold)]
     
-    # Create a plot
     plt.figure(figsize=(10, 6))
     
     # Plot the non-outliers as a plain line
@@ -156,24 +144,19 @@ def plot_data_with_outlier_threshold(data, iqr_factor = 1.5):
     plt.scatter(outliers.index, outliers.values, color='red', label='Outliers', zorder=5, s=50)
     
     # Plot the outlier threshold lines (lower and upper)
-    # plt.axhline(y=lower_threshold, color='red', linestyle='--', label=f'Lower Threshold ({lower_threshold:.2f})')
     plt.axhline(y=upper_threshold, color='red', linestyle='--', label=f'Upper Threshold ({upper_threshold:.2f})')
-    
-    # Add labels and title
+
     plt.title("Training Data Outliers", fontsize=14)
     plt.xlabel("Hour", fontsize=16)
     plt.ylabel("Total quantity", fontsize=16)
     plt.legend()
-    
-    # Show the plot
     plt.show()
 
 def main():
     # 'evaluate' multiple models with different lag features. 'final' model is saved
-    evaluate_final = 'evaluate' # 'evaluate' or 'final'
-    remoev_outliers = False
+    evaluate_final = 'final' # 'evaluate' or 'final'
+    remove_outliers = False # True or False
 
-    # loading the data
     df = pd.read_csv('new_pizza_sales.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
     df = df.reset_index()  # Reset index to make 'order_timestamp_hour' available as a column
 
@@ -206,7 +189,7 @@ def main():
 
     if evaluate_final == 'evaluate':
         model_svm = Pipeline([
-            ('scaler', StandardScaler()),  # SVM usually performs better with scaled features
+            ('scaler', StandardScaler()), 
             ('svr', SVR(kernel='rbf', C=1.0, epsilon=0.1))])
         model_elastic = ElasticNet(
             alpha=0.1, 
@@ -232,13 +215,12 @@ def main():
         print(model_name)
         for features_name, x in cols_of_features.items():
             print(f'\n{features_name}')
-            _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, tscv, remoev_outliers)
+            _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, tscv, remove_outliers)
             for i in range(len(mse)):
                 print(f"Scores for model @ split {i+1}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
 
     if evaluate_final == 'final':
         save_model(best_model, x_train, "XGB")
 
-# Run the main function
 if __name__ == "__main__":
     main()

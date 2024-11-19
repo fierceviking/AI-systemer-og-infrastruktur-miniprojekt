@@ -5,12 +5,10 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import DecimalType
 from pyspark.sql.functions import sum, col, round
 import matplotlib.pyplot as plt
-import pandas as pd
 import warnings
 import logging
 
 def fliter_warning():
-    # Filter warnings and initialize spark in environment
     warnings.filterwarnings("ignore")
     logging.getLogger("py4j").setLevel(logging.ERROR)
     findspark.init()
@@ -19,9 +17,7 @@ def fliter_warning():
     return spark
 
 def load_data(file_name, spark):
-    # Defines the path to the csv file
     data = os.path.join(os.path.dirname(__file__), file_name)
-
     df_spark = spark.read.csv(data, header=True, inferSchema=True)
     return df_spark
 
@@ -48,23 +44,17 @@ def pivot_table(df):
     # Rename the groupBy columns
     df_pivot_spark = df_pivot_spark.withColumnRenamed("pizza_category", "Pizza Category") \
                                    .withColumnRenamed("pizza_size", "Pizza Size")
-   
-   # df_order_count.show()
     return df_pivot_spark
 
 def better_looking_pivot_table(df_pivot_spark):
     df_pivot_pandas = df_pivot_spark.toPandas()
-
-    fig, ax = plt.subplots(figsize=(12, 6)) # Creates the subplot
-    ax.axis('tight') # Makes the layout fit tightly around the table
-    ax.axis('off') # Turns the extra lines and borders off
-
-    # Creates the table, centers everything, turns scaling off, and sets font size
+    fig, ax = plt.subplots(figsize=(12, 6)) 
+    ax.axis('tight') 
+    ax.axis('off') 
     table = ax.table(cellText=df_pivot_pandas.values, colLabels=df_pivot_pandas.columns, cellLoc="center", loc="center")
     table.auto_set_font_size(False)
     table.set_fontsize(10)
     table.auto_set_column_width(col=list(range(len(df_pivot_pandas.columns))))
-
     plt.show()
     
 def main():
@@ -75,8 +65,6 @@ def main():
     df_pivot_spark = pivot_table(df_spark)
 
     better_looking_pivot_table(df_pivot_spark)
-    
-    spark.stop() 
 
 if __name__ == '__main__':
     main()

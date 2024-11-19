@@ -1,25 +1,18 @@
 import warnings
 warnings.filterwarnings("ignore")
 import os
-import datetime
 import pyspark
-import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import findspark
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf
-from pyspark.sql.types import StringType
-from pyspark.sql.functions import col, substring, concat, lit, dayofmonth, to_timestamp, month, sum
+from pyspark.sql.functions import col, substring, concat, lit, to_timestamp, month, sum
 
 findspark.init()
 spark = SparkSession.builder.appName("pizza_sales").getOrCreate()
 
 def load_data(file_name):
-    # Define data path
     data = os.path.join(os.path.dirname(__file__), file_name)
-
-    # Read data
     df_spark = spark.read.csv(data, header=True, inferSchema=True)
     return df_spark
 
@@ -41,7 +34,6 @@ def convert_to_datetime(df_spark):
         concat(col('order_date'), lit(' '), col('order_time'))
     )
 
-    
     # Convert to timestamp and extract month
     exc1_df = exc1_df.withColumn(
         'month',
@@ -49,7 +41,6 @@ def convert_to_datetime(df_spark):
     )
 
     exc1_df = exc1_df.drop('order_datetime', 'order_date', 'order_time')  # Drop unwanted columns
-    # exc1_df.show()
     
     # Group by 'month' and 'pizza_size' and aggregate the quantity
     monthly_pizza = exc1_df.groupBy('month', 'pizza_size').agg(
@@ -66,7 +57,6 @@ def most_common_size_per_month(df_spark):
     # Convert to Pandas DataFrame for plotting
     most_common_sizes_pd = df_spark.toPandas()
 
-    # Plot
     plt.figure(figsize=(10, 5))
     sns.barplot(data=most_common_sizes_pd, 
                 x='month', 
@@ -85,15 +75,12 @@ def most_common_size_per_month(df_spark):
                fontsize=14,
                ha='right')
     plt.grid(True)
-
     plt.show()
-
 
 def main():
     df_spark = load_data('../pizza_sales.csv')
     df_monthly = convert_to_datetime(df_spark)
     most_common_size_per_month(df_monthly)
-    # most_common_size_per_month(df_spark)
 
 if __name__ == '__main__':
     main()
