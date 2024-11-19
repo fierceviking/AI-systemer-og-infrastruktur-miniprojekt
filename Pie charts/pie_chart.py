@@ -16,10 +16,6 @@ logging.getLogger("py4j").setLevel(logging.ERROR)
 findspark.init()
 spark = SparkSession.builder.appName("pizza_sales").getOrCreate()
 
-# # Adjust maxToStringFields
-# spark.conf.set("spark.sql.debug.maxToStringFields", 10)  # You can set any value you want
-# print(spark.conf.get("spark.sql.debug.maxToStringFields"))
-
 
 def load_data(file_name):
     # Define data path

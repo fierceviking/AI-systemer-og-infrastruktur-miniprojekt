@@ -46,22 +46,11 @@ def hourly_sales(pyspark_dataframe):
 
     exc1_df = exc1_df.drop('order_datetime', 'order_date') # Here we drop the unwanted columns that were used for order_datetime
 
-    # debug stuff
-    # ---
-    # exc1_df.show()
-    # print(exc1_df.schema)
-    # ---
-
     # Here we collect the data and columns to convert the pyspark dataframe to a pandas dataframe
     exc1_data = exc1_df.collect()
     exc1_cols = exc1_df.columns
 
     exc1_df = pd.DataFrame(exc1_data, columns=exc1_cols) # The pandas dataframe is created
-
-    # more debugging
-    # ---
-    # print(exc1_df['day_of_week'].unique())
-    # ---
 
     # Here the in-built function in pandas is used to convert the order time to the datetime format. 
     # It adds a date, but it doesn't matter since the hour is the only relevant data
