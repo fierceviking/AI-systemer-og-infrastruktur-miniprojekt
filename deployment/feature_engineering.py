@@ -27,8 +27,6 @@ def convert_to_datetime(exc1_df):
     """
     This function adds month, day_of_week, and hour columns to the DataFrame based on 'order_date' and 'order_time'.
     """
-    # Select relevant columns
-  #  exc1_df = df_spark.select("order_date", "order_time", "quantity", "total_price")
 
     # DecimalType ensures that pyspark can sum quantity and total_price
     # (10, 2) ensures that pyspark can sum with 2 decimals and 10 digits total
