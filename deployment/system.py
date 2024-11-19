@@ -170,7 +170,8 @@ def plot_data_with_outlier_threshold(data, iqr_factor = 1.5):
 
 def main():
     # 'evaluate' multiple models with different lag features. 'final' model is saved
-    evaluate_final = 'final' # 'evaluate' or 'final'
+    evaluate_final = 'evaluate' # 'evaluate' or 'final'
+    remoev_outliers = False
 
     # loading the data
     df = pd.read_csv('new_pizza_sales.csv', parse_dates=['order_timestamp_hour'], index_col='order_timestamp_hour')
@@ -184,7 +185,7 @@ def main():
     x_no_lag = df[cols]
     y = df[target]
 
-    # plot_data_with_outlier_threshold(y)
+   # plot_data_with_outlier_threshold(y)
 
     tscv = TimeSeriesSplit()
 
@@ -231,7 +232,7 @@ def main():
         print(model_name)
         for features_name, x in cols_of_features.items():
             print(f'\n{features_name}')
-            _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, tscv, False)
+            _, mse, mae, rmse, best_model, x_train = cross_val_evaluate(model, x, y, tscv, remoev_outliers)
             for i in range(len(mse)):
                 print(f"Scores for model @ split {i+1}:\n MSE: {mse[i]}\n MAE: {mae[i]}\n RMSE: {rmse[i]}")
 
